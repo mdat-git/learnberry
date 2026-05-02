@@ -5,20 +5,28 @@
   --font-mono: var(--font-geist-mono);
 }
 
+:root {
+  --ink:    #171717;
+  --ink-2:  #404040;
+  --ink-3:  #737373;
+  --ink-4:  #a3a3a3;
+  --teal:   #167e7f;
+  --border: #e5e5e5;
+  --div:    #f0efed;
+  --bg:     #fafaf8;
+  --bg-2:   #f3f3f1;
+}
+
 body {
-  background: #ffffff;
-  color: #1a1918;
-  margin: 0;
-  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 /*
-  Range input: custom styled with a proper 24px touch target.
-  The input itself is transparent; the visible track comes from
-  ::-webkit-slider-runnable-track so iOS touch area stays tall
-  while the track renders at 2px.
-  touch-action: pan-y lets vertical scroll work normally while
-  horizontal drags are captured by the slider (fixes iOS Safari).
+  Range input: 24px touch target with 2px visual track.
+  touch-action: pan-y reserves horizontal drags for the slider (fixes iOS Safari).
 */
 input[type="range"] {
   -webkit-appearance: none;
@@ -34,7 +42,7 @@ input[type="range"] {
 
 input[type="range"]::-webkit-slider-runnable-track {
   height: 2px;
-  background: #e5e5e5;
+  background: var(--border);
   border-radius: 2px;
 }
 
@@ -44,16 +52,16 @@ input[type="range"]::-webkit-slider-thumb {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #167e7f;
+  background: var(--teal);
   border: 2.5px solid white;
-  box-shadow: 0 0 0 1.5px #167e7f;
+  box-shadow: 0 0 0 1.5px var(--teal);
   cursor: pointer;
   margin-top: -8px;
 }
 
 input[type="range"]::-moz-range-track {
   height: 2px;
-  background: #e5e5e5;
+  background: var(--border);
   border-radius: 2px;
   border: none;
 }
@@ -62,7 +70,7 @@ input[type="range"]::-moz-range-thumb {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #167e7f;
+  background: var(--teal);
   border: 2.5px solid white;
   cursor: pointer;
   box-sizing: border-box;
