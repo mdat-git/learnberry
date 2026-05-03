@@ -10,9 +10,9 @@ export default function About() {
           <h1 className="text-base font-semibold text-gray-800 mb-6">About</h1>
           <div className="flex flex-col gap-4 text-sm text-gray-600 leading-relaxed">
             <p>
-              Learnberry is a set of interactive tools for thinking through personal
-              finance decisions. Every simulator is built around a real equation —
-              not a black box, not a guess.
+              Learnberry is a set of math-first interactive tools for thinking through personal
+              finance decisions. Every simulator is built around a real equation.
+              Not a black box, not a guess. 
             </p>
             <p>
               The goal is clarity. Most financial tools either oversimplify (a single
@@ -21,8 +21,7 @@ export default function About() {
             </p>
             <p>
               This is not financial advice. It is a thinking aid. Use it to build
-              intuition, stress-test assumptions, and ask better questions — then
-              talk to a professional.
+              intuition, stress-test assumptions, and ask better questions.
             </p>
             <p>
               No accounts. No tracking. No data leaves your browser. The math runs

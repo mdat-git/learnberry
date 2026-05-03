@@ -101,16 +101,19 @@ const plannedTools = [
     label: 'Savings Trajectory',
     desc: 'How long to reach $X given cash flow and return assumptions.',
     Spark: SavingsSparkline,
+    href: null,
   },
   {
     label: 'Debt Paydown',
     desc: 'How extra payments collapse your payoff timeline and total interest.',
     Spark: DebtSparkline,
+    href: '/tools/debt',
   },
   {
     label: 'Net Worth Growth',
     desc: 'Assets minus liabilities, projected forward under your assumptions.',
     Spark: NetWorthSparkline,
+    href: null,
   },
 ];
 
@@ -217,36 +220,59 @@ export default function Home() {
 
         {/* Planned tools */}
         <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid #f0efed' }}>
-          {plannedTools.map(({ label, desc, Spark }, i) => (
-            <div
-              key={label}
-              className="flex flex-row justify-between items-center gap-6 py-[14px] px-[20px] md:grid md:[grid-template-columns:1fr_120px] md:py-[16px] md:px-[28px]"
-              style={{
-                borderBottom: i < plannedTools.length - 1 ? '1px solid #f0efed' : 'none',
-                opacity: 0.5,
-              }}
-            >
-              <div className="flex flex-col gap-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[13.5px] font-medium whitespace-nowrap" style={{ color: '#171717' }}>
-                    {label}
-                  </span>
-                  <span
-                    className="text-[10px] rounded-[4px] px-[6px] py-[1px] flex-shrink-0"
-                    style={{ color: '#a3a3a3', border: '1px solid #e5e5e5', letterSpacing: '0.03em' }}
-                  >
-                    Planned
+          {plannedTools.map(({ label, desc, Spark, href }, i) => {
+            const rowContent = (
+              <>
+                <div className="flex flex-col gap-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13.5px] font-medium whitespace-nowrap" style={{ color: '#171717' }}>
+                      {label}
+                    </span>
+                    {href ? (
+                      <span
+                        className="text-[10px] font-medium rounded-[4px] px-[7px] py-[1px] flex-shrink-0"
+                        style={{
+                          color: '#167e7f',
+                          background: 'rgba(22,126,127,0.1)',
+                          border: '1px solid rgba(22,126,127,0.2)',
+                          letterSpacing: '0.03em',
+                        }}
+                      >
+                        Live
+                      </span>
+                    ) : (
+                      <span
+                        className="text-[10px] rounded-[4px] px-[6px] py-[1px] flex-shrink-0"
+                        style={{ color: '#a3a3a3', border: '1px solid #e5e5e5', letterSpacing: '0.03em' }}
+                      >
+                        Planned
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[12.5px] leading-[1.5]" style={{ color: '#737373' }}>
+                    {desc}
                   </span>
                 </div>
-                <span className="text-[12.5px] leading-[1.5]" style={{ color: '#737373' }}>
-                  {desc}
-                </span>
+                <div className="flex-shrink-0 w-[80px] h-[24px] overflow-hidden md:w-full md:h-auto md:overflow-visible">
+                  <Spark />
+                </div>
+              </>
+            );
+            const rowStyle = {
+              borderBottom: i < plannedTools.length - 1 ? '1px solid #f0efed' : 'none',
+              opacity: href ? 1 : 0.5,
+            };
+            const rowClass = 'flex flex-row justify-between items-center gap-6 py-[14px] px-[20px] md:grid md:[grid-template-columns:1fr_120px] md:py-[16px] md:px-[28px]';
+            return href ? (
+              <Link key={label} href={href} className={rowClass} style={rowStyle}>
+                {rowContent}
+              </Link>
+            ) : (
+              <div key={label} className={rowClass} style={rowStyle}>
+                {rowContent}
               </div>
-              <div className="flex-shrink-0 w-[80px] h-[24px] overflow-hidden md:w-full md:h-auto md:overflow-visible">
-                <Spark />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
