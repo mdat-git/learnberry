@@ -1,5 +1,5 @@
-import HomeSimulator from '@/components/simulators/HomeSimulator';
+import HomeModelSimulator from '@/components/simulators/HomeModelSimulator';
 
 export default function HomePage() {
-  return <HomeSimulator />;
+  return <HomeModelSimulator />;
 }
