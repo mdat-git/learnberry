@@ -17,6 +17,7 @@ export type HomeModelInputs = {
   targetHomePrice: number;
   downPaymentPercent: number; // decimal, e.g. 0.20 for 20%
   closingCostPercent: number; // decimal, e.g. 0.02 for 2%
+  annualAppreciation: number; // decimal, e.g. 0.04 for 4%
 };
 
 export type MonthlySnapshot = {
@@ -36,6 +37,10 @@ export type HomeModelResult = {
   interestEarnedAtGoal: number;
   monthlyNeededOneYearEarlier: number;
   debtFreeMonth: number;
+  appreciatedHomePrice: number;
+  appreciatedCashNeeded: number;
+  appreciationGap: number;
+  appreciationSnapshots: { month: number; appreciatedGoal: number }[];
 };
 
 const MAX_MONTHS = 600;
@@ -193,6 +198,25 @@ export function calculateHomeModel(inputs: HomeModelInputs): HomeModelResult {
     monthlyNeededOneYearEarlier = Math.max(0, totalNeeded - monthlyContributionAfterDebt);
   }
 
+  // Home price appreciation
+  const monthlyAppreciation = inputs.annualAppreciation / 12;
+  const goalForAppreciation = goalMonth ?? 120;
+  const cashNeededFraction = downPaymentPercent + closingCostPercent;
+  const appreciatedHomePrice =
+    targetHomePrice * Math.pow(1 + monthlyAppreciation, goalForAppreciation);
+  const appreciatedCashNeeded = appreciatedHomePrice * cashNeededFraction;
+  const appreciationGap = Math.max(0, appreciatedCashNeeded - totalCashNeeded);
+
+  const appreciationWindow = Math.min(
+    main.snapshots.length - 1,
+    (goalMonth ?? 120) + 6,
+  );
+  const appreciationSnapshots: { month: number; appreciatedGoal: number }[] = [];
+  for (let m = 0; m <= appreciationWindow; m++) {
+    const priceAtM = targetHomePrice * Math.pow(1 + monthlyAppreciation, m);
+    appreciationSnapshots.push({ month: m, appreciatedGoal: priceAtM * cashNeededFraction });
+  }
+
   return {
     snapshots: main.snapshots,
     goalMonth,
@@ -204,5 +228,9 @@ export function calculateHomeModel(inputs: HomeModelInputs): HomeModelResult {
     interestEarnedAtGoal,
     monthlyNeededOneYearEarlier,
     debtFreeMonth,
+    appreciatedHomePrice,
+    appreciatedCashNeeded,
+    appreciationGap,
+    appreciationSnapshots,
   };
 }

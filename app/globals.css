@@ -3,26 +3,32 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-serif);
 }
 
 :root {
-  --ink:    #171717;
-  --ink-2:  #404040;
-  --ink-3:  #737373;
-  --ink-4:  #a3a3a3;
+  /* Warm cream palette, modeled after anthropic.com */
+  --bg:     #edeae3;
+  --bg-2:   #e4e1da;
+  --ink:    #1e1c18;
+  --ink-2:  #3a3830;
+  --ink-3:  #6b6760;
+  --ink-4:  #a09890;
+  --rule:   rgba(0, 0, 0, 0.10);
+  --border: #d4d0c8;
+  --div:    #d8d4cb;
   --teal:   #167e7f;
-  --border: #e5e5e5;
-  --div:    #f0efed;
-  --bg:     #fafaf8;
-  --bg-2:   #f3f3f1;
 }
 
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
+
+::selection { background: rgba(22, 126, 127, 0.22); }
 
 /*
   Range input: 24px touch target with 2px visual track.

@@ -2,387 +2,640 @@ import Link from 'next/link';
 import Nav from '@/components/layout/Nav';
 import Footer from '@/components/layout/Footer';
 
-function HomeSparkline() {
+/* ── tokens ─────────────────────────────────────────────── */
+const BG = '#edeae3';
+const BG_2 = '#e4e1da';
+const DARK = '#1e1c18';
+const INK = '#1e1c18';
+const INK_2 = '#3a3830';
+const INK_3 = '#6b6760';
+const INK_4 = '#a09890';
+const RULE = 'rgba(0,0,0,0.10)';
+const TEAL = '#167e7f';
+const SERIF = "var(--font-serif), 'Source Serif 4', 'Source Serif Pro', Georgia, serif";
+
+const wrap = { maxWidth: 1240, marginLeft: 'auto', marginRight: 'auto' };
+const hPad = { paddingLeft: 'clamp(20px, 4vw, 56px)', paddingRight: 'clamp(20px, 4vw, 56px)' };
+
+/* ── icons ──────────────────────────────────────────────── */
+function Arrow({ size = 12, color = DARK }: { size?: number; color?: string }) {
   return (
-    <svg width="100%" height="32" viewBox="0 0 200 32" preserveAspectRatio="none">
+    <svg width={size} height={size} viewBox="0 0 12 12" fill="none">
+      <path d="M2 6h8M7 3l3 3-3 3" stroke={color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/* ── chart visuals ──────────────────────────────────────── */
+function FeaturedChart() {
+  // Larger illustrative chart for the dark featured panel.
+  return (
+    <svg viewBox="0 0 460 320" fill="none" style={{ width: '100%', height: 'auto', display: 'block' }}>
       <defs>
-        <linearGradient id="grad-home" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(22,126,127,0.12)" />
-          <stop offset="100%" stopColor="rgba(22,126,127,0)" />
+        <linearGradient id="featGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="rgba(237,234,227,0.18)" />
+          <stop offset="100%" stopColor="rgba(237,234,227,0)" />
         </linearGradient>
       </defs>
+      {/* horizontal grid */}
+      {[60, 130, 200, 270].map((y) => (
+        <line key={y} x1="40" y1={y} x2="430" y2={y} stroke="rgba(237,234,227,0.06)" strokeWidth="1" />
+      ))}
+      {/* goal line */}
+      <line x1="40" y1="60" x2="430" y2="60" stroke="rgba(237,234,227,0.45)" strokeDasharray="6 4" strokeWidth="1" />
+      <text x="430" y="50" fill="rgba(237,234,227,0.55)" fontSize="11" textAnchor="end" fontFamily={SERIF}>goal</text>
+      {/* trajectory area */}
       <path
-        d="M0,30 C30,28 60,24 90,18 C120,10 150,5 200,2 L200,32 L0,32 Z"
-        fill="url(#grad-home)"
+        d="M40,260 C100,240 160,200 220,150 C280,108 340,80 430,60 L430,290 L40,290 Z"
+        fill="url(#featGrad)"
       />
+      {/* trajectory line */}
       <path
-        d="M0,30 C30,28 60,24 90,18 C120,10 150,5 200,2"
+        d="M40,260 C100,240 160,200 220,150 C280,108 340,80 430,60"
         fill="none"
-        stroke="#167e7f"
-        strokeWidth="1.5"
+        stroke="#edeae3"
+        strokeWidth="2"
+        strokeLinecap="round"
       />
-      <line x1="0" y1="2" x2="200" y2="2" stroke="#c0644a" strokeDasharray="4 4" strokeWidth="1" opacity="0.5" />
-      <line x1="148" y1="2" x2="148" y2="32" stroke="#167e7f" strokeDasharray="3 3" strokeWidth="1" opacity="0.4" />
-      <circle cx="148" cy="2" r="2.5" fill="#167e7f" opacity="0.8" />
+      {/* crossing dot */}
+      <circle cx="335" cy="80" r="4.5" fill="#edeae3" />
+      <circle cx="335" cy="80" r="9" fill="none" stroke="#edeae3" strokeWidth="1" opacity="0.35" />
+      {/* x-axis ticks (years) */}
+      {['Yr 1', 'Yr 2', 'Yr 3', 'Yr 4', 'Yr 5'].map((label, i) => (
+        <text
+          key={label}
+          x={40 + (i + 1) * 78}
+          y={304}
+          fill="rgba(237,234,227,0.45)"
+          fontSize="10"
+          textAnchor="middle"
+          fontFamily="ui-monospace, monospace"
+        >
+          {label}
+        </text>
+      ))}
     </svg>
   );
 }
 
-function SavingsSparkline() {
+function HomeSpark() {
   return (
-    <svg width="100%" height="32" viewBox="0 0 200 32" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="grad-savings" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(22,126,127,0.12)" />
-          <stop offset="100%" stopColor="rgba(22,126,127,0)" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M0,28 C20,26 40,22 60,16 C90,8 120,4 200,2 L200,32 L0,32 Z"
-        fill="url(#grad-savings)"
-      />
-      <path
-        d="M0,28 C20,26 40,22 60,16 C90,8 120,4 200,2"
-        fill="none"
-        stroke="#167e7f"
-        strokeWidth="1.5"
-      />
+    <svg viewBox="0 0 200 56" fill="none" style={{ width: '100%', height: 56, display: 'block' }}>
+      <line x1="0" y1="10" x2="200" y2="10" stroke={INK_4} strokeDasharray="4 3" strokeWidth="1" opacity="0.55" />
+      <path d="M0,46 C40,42 80,32 120,20 C150,14 180,11 200,10" fill="none" stroke={TEAL} strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="148" cy="13" r="2.8" fill={TEAL} />
     </svg>
   );
 }
 
-function DebtSparkline() {
+function DebtSpark() {
   return (
-    <svg width="100%" height="32" viewBox="0 0 200 32" preserveAspectRatio="none">
-      <path
-        d="M0,2 C20,6 60,14 100,22 C140,28 170,30 200,31"
-        fill="none"
-        stroke="#a3a3a3"
-        strokeWidth="1.5"
-        strokeDasharray="5 3"
-        opacity="0.5"
-      />
-      <path
-        d="M0,2 C30,8 70,18 110,26 C150,30 180,31 200,32"
-        fill="none"
-        stroke="#167e7f"
-        strokeWidth="1.5"
-      />
+    <svg viewBox="0 0 200 56" fill="none" style={{ width: '100%', height: 56, display: 'block' }}>
+      <path d="M0,12 C30,18 60,28 100,38 C140,46 170,50 200,52" fill="none" stroke={INK_4} strokeDasharray="4 3" strokeWidth="1.2" opacity="0.55" />
+      <path d="M0,12 C30,20 60,32 100,42 C140,48 170,50 200,50" fill="none" stroke={TEAL} strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
 
-function NetWorthSparkline() {
+function SavingsSpark() {
   return (
-    <svg width="100%" height="32" viewBox="0 0 200 32" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="grad-networth" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(22,126,127,0.12)" />
-          <stop offset="100%" stopColor="rgba(22,126,127,0)" />
-        </linearGradient>
-      </defs>
-      <line x1="0" y1="22" x2="200" y2="22" stroke="#e5e5e5" strokeDasharray="4 4" strokeWidth="1" />
-      <path
-        d="M0,28 C20,27 40,26 60,25 C80,23 90,22 100,20 C120,14 150,6 200,2 L200,32 L0,32 Z"
-        fill="url(#grad-networth)"
-      />
-      <path
-        d="M0,28 C20,27 40,26 60,25 C80,23 90,22 100,20 C120,14 150,6 200,2"
-        fill="none"
-        stroke="#167e7f"
-        strokeWidth="1.5"
-      />
+    <svg viewBox="0 0 200 56" fill="none" style={{ width: '100%', height: 56, display: 'block' }}>
+      <path d="M0,46 C30,44 60,38 90,30 C130,18 170,10 200,8" fill="none" stroke={INK_4} strokeWidth="1.4" opacity="0.55" />
     </svg>
   );
 }
 
-const plannedTools = [
+function NetWorthSpark() {
+  return (
+    <svg viewBox="0 0 200 56" fill="none" style={{ width: '100%', height: 56, display: 'block' }}>
+      <path d="M0,42 C40,38 80,30 120,22 C150,16 180,10 200,8" fill="none" stroke={INK_4} strokeWidth="1.4" opacity="0.55" />
+      <path d="M0,46 C40,46 80,44 120,42 C150,40 180,38 200,36" fill="none" stroke={INK_4} strokeWidth="1" strokeDasharray="3 3" opacity="0.45" />
+    </svg>
+  );
+}
+
+/* ── data ───────────────────────────────────────────────── */
+const featured = {
+  title: 'Home Down Payment',
+  blurb:
+    'Savings trajectory, home equity, and post-debt cash flow — modeled month by month against your timeline.',
+  href: '/tools/home',
+};
+
+const models = [
   {
-    label: 'Savings Trajectory',
-    desc: 'How long to reach $X given cash flow and return assumptions.',
-    Spark: SavingsSparkline,
-    href: null,
-  },
-  {
-    label: 'Debt Paydown',
-    desc: 'How extra payments collapse your payoff timeline and total interest.',
-    Spark: DebtSparkline,
+    title: 'Debt Paydown',
+    blurb: 'How extra payments collapse your payoff timeline and reduce total interest paid.',
+    status: 'Live',
     href: '/tools/debt',
+    Spark: DebtSpark,
   },
   {
-    label: 'Net Worth Growth',
-    desc: 'Assets minus liabilities, projected forward under your assumptions.',
-    Spark: NetWorthSparkline,
+    title: 'Savings Trajectory',
+    blurb: 'How long to reach a savings goal given your current cash flow and return assumptions.',
+    status: 'Planned',
     href: null,
+    Spark: SavingsSpark,
+  },
+  {
+    title: 'Net Worth Growth',
+    blurb: 'Assets minus liabilities, projected forward under your assumptions.',
+    status: 'Planned',
+    href: null,
+    Spark: NetWorthSpark,
   },
 ];
 
-const hPad = { paddingLeft: 'clamp(24px, 5vw, 64px)', paddingRight: 'clamp(24px, 5vw, 64px)' };
+const doesItems = [
+  'Models financial goals over time',
+  'Shows how assumptions affect outcomes',
+  'Makes variables visible and adjustable',
+  'Uses deterministic, standard math',
+];
 
+const doesNotItems = [
+  'Give financial advice',
+  'Track your accounts or data',
+  'Hide assumptions in a black box',
+  'Motivate, nudge, or gamify',
+];
+
+/* ── shared style fragments ─────────────────────────────── */
+const sectionLabel: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 500,
+  color: INK,
+  marginBottom: 24,
+  letterSpacing: '-0.005em',
+};
+
+const monoLabel: React.CSSProperties = {
+  fontFamily: 'var(--font-geist-mono), ui-monospace, monospace',
+  fontSize: 10,
+  fontWeight: 500,
+  letterSpacing: '0.12em',
+  textTransform: 'uppercase',
+  color: INK_3,
+};
+
+/* ── page ───────────────────────────────────────────────── */
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#fafaf8', color: '#171717' }}>
+    <div style={{ background: BG, minHeight: '100vh', color: INK }}>
       <Nav />
 
-      {/* ── OPENING ── */}
+      {/* ── HERO ── */}
       <section
-        className="mx-auto w-full"
         style={{
-          maxWidth: 920,
+          ...wrap,
           ...hPad,
-          paddingTop: 'clamp(64px, 8vw, 100px)',
-          paddingBottom: 'clamp(48px, 6vw, 72px)',
+          paddingTop: 'clamp(64px, 8vw, 120px)',
+          paddingBottom: 'clamp(56px, 7vw, 96px)',
         }}
       >
-        <div style={{ maxWidth: 640 }}>
-          <p
-            className="font-semibold leading-[1.2] tracking-[-0.025em] mb-5"
-            style={{ fontSize: 'clamp(26px, 3.5vw, 40px)', color: '#171717' }}
+        <div
+          className="grid grid-cols-1 md:grid-cols-2"
+          style={{ gap: 'clamp(32px, 5vw, 80px)', alignItems: 'start' }}
+        >
+          <h1
+            style={{
+              fontSize: 'clamp(40px, 5.5vw, 72px)',
+              fontWeight: 700,
+              lineHeight: 1.02,
+              letterSpacing: '-0.028em',
+              color: INK,
+              textWrap: 'balance',
+            }}
           >
-            Make your financial<br />trajectory visible.
-          </p>
-          <p
-            className="leading-[1.7] font-normal mb-7"
-            style={{ fontSize: 'clamp(15px, 1.6vw, 17px)', color: '#737373', maxWidth: 460 }}
-          >
-            See where your current behavior leads, what becomes possible, and what would change the timeline.
-          </p>
-          <div className="flex items-center gap-5 flex-wrap">
-            <Link
-              href="/tools/home"
-              className="inline-flex items-center gap-[5px] text-[14px] font-medium"
-              style={{ color: '#167e7f' }}
+            Financial models that put{' '}
+            <span style={{ borderBottom: `2px solid ${INK}`, paddingBottom: 4 }}>
+              every assumption
+            </span>{' '}
+            in plain view.
+          </h1>
+          <div style={{ paddingTop: 'clamp(8px, 1vw, 16px)' }}>
+            <p
+              style={{
+                fontFamily: SERIF,
+                fontSize: 'clamp(16px, 1.35vw, 20px)',
+                fontWeight: 400,
+                lineHeight: 1.55,
+                color: INK_2,
+                textWrap: 'pretty',
+              }}
             >
-              Open the home down payment model
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                <path d="M2 6.5h9M8 3l3 3.5-3 3.5" stroke="#167e7f" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </Link>
-            <span className="text-[12px]" style={{ color: '#a3a3a3' }}>No data stored.</span>
+              Learnberry builds financial models from first principles —
+              standard time-value-of-money equations with every assumption
+              visible and adjustable. See where your current trajectory leads,
+              and what changes if you change one thing.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* ── MODEL LIBRARY ── */}
+      {/* ── FEATURED MODEL (dark panel) ── */}
       <section
-        id="models"
-        className="mx-auto w-full"
         style={{
-          maxWidth: 920,
+          ...wrap,
           ...hPad,
-          paddingTop: 'clamp(36px, 4vw, 52px)',
-          paddingBottom: 'clamp(64px, 8vw, 96px)',
-          borderTop: '1px solid #f0efed',
+          paddingBottom: 'clamp(48px, 6vw, 80px)',
         }}
       >
-        <p
-          className="text-[12px] font-medium uppercase mb-7"
-          style={{ color: '#a3a3a3', letterSpacing: '0.06em' }}
-        >
-          Models
-        </p>
-
-        {/* Featured model */}
-        <Link
-          href="/tools/home"
-          className="flex flex-col md:grid md:items-center md:[grid-template-columns:2fr_1fr] gap-6 rounded-[10px] mb-2"
-          style={{
-            background: '#f3f3f1',
-            border: '1px solid #e5e5e5',
-            padding: '24px 28px',
-          }}
-        >
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2 md:gap-[10px]">
-              <span className="text-[15px] font-semibold tracking-[-0.01em] whitespace-nowrap" style={{ color: '#171717' }}>
-                Home Down Payment
-              </span>
-              <span
-                className="text-[10px] font-medium rounded-[4px] px-[7px] py-[1px] flex-shrink-0"
+        <Link href={featured.href} style={{ display: 'block', textDecoration: 'none' }}>
+          <div
+            className="grid grid-cols-1 md:grid-cols-2"
+            style={{
+              background: DARK,
+              borderRadius: 18,
+              overflow: 'hidden',
+              minHeight: 380,
+            }}
+          >
+            {/* Left: text */}
+            <div
+              style={{
+                padding: 'clamp(36px, 5vw, 64px)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+              }}
+            >
+              <h2
                 style={{
-                  color: '#167e7f',
-                  background: 'rgba(22,126,127,0.1)',
-                  border: '1px solid rgba(22,126,127,0.2)',
-                  letterSpacing: '0.03em',
+                  fontFamily: SERIF,
+                  fontSize: 'clamp(40px, 5vw, 64px)',
+                  fontWeight: 500,
+                  color: BG,
+                  lineHeight: 1.02,
+                  letterSpacing: '-0.012em',
+                  marginBottom: 22,
                 }}
               >
-                Live
+                {featured.title}
+              </h2>
+              <p
+                style={{
+                  fontFamily: SERIF,
+                  fontSize: 'clamp(15px, 1.2vw, 17px)',
+                  lineHeight: 1.6,
+                  color: '#a8a39a',
+                  fontWeight: 400,
+                  maxWidth: 420,
+                  marginBottom: 28,
+                }}
+              >
+                {featured.blurb}
+              </p>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: BG,
+                  color: DARK,
+                  padding: '11px 20px',
+                  borderRadius: 100,
+                  fontSize: 13,
+                  fontWeight: 500,
+                  width: 'fit-content',
+                }}
+              >
+                Open the model
+                <Arrow color={DARK} size={11} />
               </span>
             </div>
-            <p className="text-[13.5px] leading-[1.6]" style={{ color: '#737373' }}>
-              See when your savings trajectory meets your down payment target — and what changes the timeline.
-            </p>
-          </div>
-          <div className="hidden md:block">
-            <HomeSparkline />
+            {/* Right: chart */}
+            <div
+              style={{
+                padding: 'clamp(28px, 4vw, 48px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(0,0,0,0.18)',
+                minHeight: 280,
+              }}
+            >
+              <FeaturedChart />
+            </div>
           </div>
         </Link>
+      </section>
 
-        {/* Planned tools */}
-        <div className="rounded-[10px] overflow-hidden" style={{ border: '1px solid #f0efed' }}>
-          {plannedTools.map(({ label, desc, Spark, href }, i) => {
-            const rowContent = (
-              <>
-                <div className="flex flex-col gap-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[13.5px] font-medium whitespace-nowrap" style={{ color: '#171717' }}>
-                      {label}
-                    </span>
-                    {href ? (
-                      <span
-                        className="text-[10px] font-medium rounded-[4px] px-[7px] py-[1px] flex-shrink-0"
-                        style={{
-                          color: '#167e7f',
-                          background: 'rgba(22,126,127,0.1)',
-                          border: '1px solid rgba(22,126,127,0.2)',
-                          letterSpacing: '0.03em',
-                        }}
-                      >
-                        Live
-                      </span>
-                    ) : (
-                      <span
-                        className="text-[10px] rounded-[4px] px-[6px] py-[1px] flex-shrink-0"
-                        style={{ color: '#a3a3a3', border: '1px solid #e5e5e5', letterSpacing: '0.03em' }}
-                      >
-                        Planned
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-[12.5px] leading-[1.5]" style={{ color: '#737373' }}>
-                    {desc}
+      {/* ── LATEST MODELS (3-col card grid) ── */}
+      <section
+        id="models"
+        style={{
+          ...wrap,
+          ...hPad,
+          paddingTop: 'clamp(40px, 5vw, 56px)',
+          paddingBottom: 'clamp(72px, 8vw, 112px)',
+        }}
+      >
+        <p style={sectionLabel}>Latest models</p>
+
+        <div
+          className="grid grid-cols-1 md:grid-cols-3"
+          style={{ gap: 16 }}
+        >
+          {models.map((m) => {
+            const isLive = !!m.href;
+            const card = (
+              <div
+                style={{
+                  background: BG_2,
+                  borderRadius: 14,
+                  padding: '28px 28px 24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  height: '100%',
+                  transition: 'background 0.18s ease',
+                }}
+              >
+                <h3
+                  style={{
+                    fontSize: 20,
+                    fontWeight: 700,
+                    letterSpacing: '-0.018em',
+                    color: INK,
+                    marginBottom: 12,
+                    lineHeight: 1.15,
+                  }}
+                >
+                  {m.title}
+                </h3>
+                <p
+                  style={{
+                    fontFamily: SERIF,
+                    fontSize: 14.5,
+                    fontWeight: 400,
+                    lineHeight: 1.55,
+                    color: INK_2,
+                    marginBottom: 24,
+                    flexGrow: 1,
+                  }}
+                >
+                  {m.blurb}
+                </p>
+                <div style={{ marginBottom: 22, opacity: isLive ? 1 : 0.55 }}>
+                  <m.Spark />
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'baseline',
+                    padding: '12px 0',
+                    borderTop: `1px solid ${RULE}`,
+                  }}
+                >
+                  <span style={monoLabel}>Status</span>
+                  <span style={{ fontSize: 13, color: isLive ? TEAL : INK_3, fontWeight: 500 }}>
+                    {m.status}
                   </span>
                 </div>
-                <div className="flex-shrink-0 w-[80px] h-[24px] overflow-hidden md:w-full md:h-auto md:overflow-visible">
-                  <Spark />
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'baseline',
+                    padding: '12px 0',
+                    borderTop: `1px solid ${RULE}`,
+                  }}
+                >
+                  <span style={monoLabel}>Category</span>
+                  <span style={{ fontSize: 13, color: INK_2 }}>Personal Finance</span>
                 </div>
-              </>
+                <div style={{ marginTop: 18 }}>
+                  {isLive ? (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        background: DARK,
+                        color: BG,
+                        padding: '10px 18px',
+                        borderRadius: 100,
+                        fontSize: 13,
+                        fontWeight: 500,
+                      }}
+                    >
+                      Open model <Arrow color={BG} size={11} />
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 13, color: INK_3, fontWeight: 500 }}>Planned</span>
+                  )}
+                </div>
+              </div>
             );
-            const rowStyle = {
-              borderBottom: i < plannedTools.length - 1 ? '1px solid #f0efed' : 'none',
-              opacity: href ? 1 : 0.5,
-            };
-            const rowClass = 'flex flex-row justify-between items-center gap-6 py-[14px] px-[20px] md:grid md:[grid-template-columns:1fr_120px] md:py-[16px] md:px-[28px]';
-            return href ? (
-              <Link key={label} href={href} className={rowClass} style={rowStyle}>
-                {rowContent}
+            return isLive ? (
+              <Link key={m.title} href={m.href!} style={{ textDecoration: 'none', color: 'inherit' }}>
+                {card}
               </Link>
             ) : (
-              <div key={label} className={rowClass} style={rowStyle}>
-                {rowContent}
-              </div>
+              <div key={m.title}>{card}</div>
             );
           })}
         </div>
       </section>
 
-      {/* ── PHILOSOPHY ── */}
+      {/* ── PHILOSOPHY (split heading) ── */}
       <section
-        className="mx-auto w-full"
         style={{
-          maxWidth: 920,
+          ...wrap,
           ...hPad,
-          paddingTop: 'clamp(56px, 7vw, 88px)',
-          paddingBottom: 'clamp(56px, 7vw, 88px)',
-          borderTop: '1px solid #f0efed',
-        }}
-      >
-        <div style={{ maxWidth: 680 }}>
-          <p
-            className="font-semibold leading-[1.25] tracking-[-0.025em]"
-            style={{ fontSize: 'clamp(28px, 4vw, 52px)', color: '#171717' }}
-          >
-            If your current behavior continues,<br />where does it lead?
-          </p>
-          <p
-            className="font-semibold leading-[1.25] tracking-[-0.025em] mb-7"
-            style={{ fontSize: 'clamp(28px, 4vw, 52px)', color: '#737373', marginTop: '0.25em' }}
-          >
-            If you change one assumption,<br />what changes with it?
-          </p>
-          <p className="text-[14px] leading-[1.7]" style={{ color: '#a3a3a3' }}>
-            Learnberry is built to make that visible.
-          </p>
-        </div>
-      </section>
-
-      {/* ── WHAT THIS IS ── */}
-      <section
-        className="mx-auto w-full"
-        style={{
-          maxWidth: 920,
-          ...hPad,
-          paddingTop: 'clamp(48px, 6vw, 72px)',
-          paddingBottom: 'clamp(48px, 6vw, 72px)',
-          borderTop: '1px solid #f0efed',
+          paddingTop: 'clamp(48px, 6vw, 80px)',
+          paddingBottom: 'clamp(56px, 7vw, 96px)',
         }}
       >
         <div
-          className="grid grid-cols-2"
-          style={{ gap: 'clamp(32px, 6vw, 96px)', maxWidth: 680 }}
+          className="grid grid-cols-1 md:grid-cols-2"
+          style={{ gap: 'clamp(32px, 5vw, 96px)', alignItems: 'start' }}
         >
           <div>
-            <p className="text-[13px] font-semibold mb-[18px]" style={{ color: '#171717' }}>
-              What <span style={{ color: '#167e7f' }}>Learnberry</span> does
+            <h2
+              style={{
+                fontSize: 'clamp(32px, 4.2vw, 56px)',
+                fontWeight: 700,
+                lineHeight: 1.04,
+                letterSpacing: '-0.025em',
+                color: INK,
+                marginBottom: '0.4em',
+                textWrap: 'balance',
+              }}
+            >
+              If your current behavior continues, where does it lead?
+            </h2>
+            <p
+              style={{
+                fontSize: 'clamp(32px, 4.2vw, 56px)',
+                fontWeight: 700,
+                lineHeight: 1.04,
+                letterSpacing: '-0.025em',
+                color: INK_3,
+                textWrap: 'balance',
+              }}
+            >
+              If you change one assumption, what changes with it?
             </p>
-            <div className="flex flex-col gap-[11px]">
-              {[
-                'Models financial goals over time',
-                'Shows how assumptions affect outcomes',
-                'Makes variables visible and adjustable',
-                'Uses deterministic, standard math',
-              ].map((t) => (
-                <div key={t} className="flex gap-[10px]">
-                  <span className="text-[12px] font-semibold flex-shrink-0 mt-[1px]" style={{ color: '#167e7f' }}>✓</span>
-                  <span className="text-[13px] leading-[1.6]" style={{ color: '#404040' }}>{t}</span>
-                </div>
-              ))}
-            </div>
           </div>
-          <div>
-            <p className="text-[13px] font-semibold mb-[18px]" style={{ color: '#171717' }}>
-              What it does not do
+          <div style={{ paddingTop: 'clamp(8px, 1vw, 14px)' }}>
+            <p
+              style={{
+                fontFamily: SERIF,
+                fontSize: 'clamp(16px, 1.3vw, 19px)',
+                fontWeight: 400,
+                lineHeight: 1.6,
+                color: INK_2,
+                textWrap: 'pretty',
+              }}
+            >
+              Learnberry is built to make that visible — not with advice, but
+              with a model you can see, adjust, and trust. Standard math,
+              shown openly, with every assumption you can change.
             </p>
-            <div className="flex flex-col gap-[11px]">
-              {[
-                'Give financial advice',
-                'Track your accounts or data',
-                'Hide assumptions in a black box',
-                'Motivate, nudge, or gamify',
-              ].map((t) => (
-                <div key={t} className="flex gap-[10px]">
-                  <span className="text-[13px] flex-shrink-0" style={{ color: '#a3a3a3' }}>—</span>
-                  <span className="text-[13px] leading-[1.6]" style={{ color: '#737373' }}>{t}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
 
-      {/* ── MATH NOTE ── */}
+      {/* ── ABOUT (does/does-not + the model) ── */}
       <section
-        className="mx-auto w-full"
+        id="about"
         style={{
-          maxWidth: 920,
+          ...wrap,
           ...hPad,
           paddingTop: 'clamp(48px, 6vw, 72px)',
-          paddingBottom: 'clamp(64px, 8vw, 96px)',
-          borderTop: '1px solid #f0efed',
+          paddingBottom: 'clamp(80px, 9vw, 128px)',
         }}
       >
-        <div style={{ maxWidth: 560 }}>
-          <p
-            className="font-bold leading-[1.15] tracking-[-0.025em] mb-4"
-            style={{ fontSize: 'clamp(20px, 2.5vw, 28px)', color: '#171717' }}
-          >
-            The model is the product.
-          </p>
-          <p className="text-[14px] leading-[1.8]" style={{ color: '#737373' }}>
-            Learnberry tools are built from standard time-value-of-money equations: accumulation, growth, annuities,
-            and goal conditions. No black box. No hidden score. No invented logic. Just assumptions, equations, and
-            visible outcomes.
-          </p>
+        <div
+          className="grid grid-cols-1 md:grid-cols-2"
+          style={{ gap: 'clamp(40px, 6vw, 96px)', alignItems: 'start' }}
+        >
+          {/* Left: lists */}
+          <div>
+            <p style={sectionLabel}>What Learnberry does</p>
+            <div>
+              {doesItems.map((t, i) => (
+                <div
+                  key={t}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    gap: 14,
+                    padding: '16px 0',
+                    borderBottom: `1px solid ${RULE}`,
+                    borderTop: i === 0 ? `1px solid ${RULE}` : 'none',
+                  }}
+                >
+                  <span style={{ color: TEAL, fontSize: 12, fontWeight: 600, flexShrink: 0 }}>✓</span>
+                  <span
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 500,
+                      color: INK,
+                      lineHeight: 1.45,
+                      letterSpacing: '-0.005em',
+                    }}
+                  >
+                    {t}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <p style={{ ...sectionLabel, marginTop: 40 }}>What it does not do</p>
+            <div>
+              {doesNotItems.map((t, i) => (
+                <div
+                  key={t}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    gap: 14,
+                    padding: '16px 0',
+                    borderBottom: `1px solid ${RULE}`,
+                    borderTop: i === 0 ? `1px solid ${RULE}` : 'none',
+                  }}
+                >
+                  <span style={{ color: INK_4, fontSize: 12, flexShrink: 0 }}>—</span>
+                  <span
+                    style={{
+                      fontSize: 16,
+                      fontWeight: 500,
+                      color: INK_3,
+                      lineHeight: 1.45,
+                      letterSpacing: '-0.005em',
+                    }}
+                  >
+                    {t}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right: the model */}
+          <div>
+            <p style={sectionLabel}>The model</p>
+            <h3
+              style={{
+                fontSize: 'clamp(28px, 3.4vw, 48px)',
+                fontWeight: 700,
+                letterSpacing: '-0.025em',
+                color: INK,
+                lineHeight: 1.04,
+                marginBottom: 28,
+                textWrap: 'balance',
+              }}
+            >
+              The model<br />is the product.
+            </h3>
+            <p
+              style={{
+                fontFamily: SERIF,
+                fontSize: 17,
+                color: INK_2,
+                lineHeight: 1.65,
+                fontWeight: 400,
+                marginBottom: 16,
+              }}
+            >
+              Learnberry tools are built from standard time-value-of-money
+              equations: accumulation, growth, annuities, and goal conditions.
+            </p>
+            <p
+              style={{
+                fontFamily: SERIF,
+                fontSize: 17,
+                color: INK_2,
+                lineHeight: 1.65,
+                fontWeight: 400,
+                marginBottom: 36,
+              }}
+            >
+              No black box. No hidden score. No invented logic. Just
+              assumptions, equations, and visible outcomes.
+            </p>
+            <Link
+              href="/tools/home"
+              style={{
+                fontFamily: SERIF,
+                fontSize: 17,
+                fontStyle: 'italic',
+                color: TEAL,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                borderBottom: `1px solid ${TEAL}`,
+                paddingBottom: 2,
+                textDecoration: 'none',
+              }}
+            >
+              Open the down payment model
+              <Arrow color={TEAL} size={11} />
+            </Link>
+          </div>
         </div>
       </section>
 

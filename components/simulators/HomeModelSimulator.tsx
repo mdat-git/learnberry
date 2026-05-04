@@ -15,6 +15,52 @@ import {
 import Nav from '@/components/layout/Nav';
 import Footer from '@/components/layout/Footer';
 import { calculateHomeModel } from '@/lib/models/homeModel';
+import { useLocalStorage } from '@/lib/hooks/useLocalStorage';
+
+type HomeModelInputState = {
+  currentSavingsBalance: number;
+  currentMonthlySavings: number;
+  annualReturnPct: number;
+  monthsUntilDebtFree: number;
+  monthlyContributionAfterDebt: number;
+  currentHomeValue: number;
+  remainingMortgage: number;
+  sellingCostPct: number;
+  targetHomePrice: number;
+  downPaymentPct: number;
+  closingCostPct: number;
+  annualAppreciationPct: number;
+  mortgageRate: number;
+  grossMonthlyIncome: number;
+  existingMonthlyDebt: number;
+};
+
+const DEFAULT_HOME_INPUTS: HomeModelInputState = {
+  currentSavingsBalance: 25000,
+  currentMonthlySavings: 800,
+  annualReturnPct: 4.5,
+  monthsUntilDebtFree: 74,
+  monthlyContributionAfterDebt: 1250,
+  currentHomeValue: 500000,
+  remainingMortgage: 300000,
+  sellingCostPct: 6,
+  targetHomePrice: 750000,
+  downPaymentPct: 20,
+  closingCostPct: 2,
+  annualAppreciationPct: 4,
+  mortgageRate: 6.75,
+  grossMonthlyIncome: 0,
+  existingMonthlyDebt: 0,
+};
+
+const fmtUSD = (v: number) =>
+  v.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  });
+
+const fmtPct1 = (v: number) => `${(v * 100).toFixed(1)}%`;
 
 const INK = '#171717';
 const INK_2 = '#404040';
@@ -216,6 +262,60 @@ function CalculatedBox({ label, value }: { label: string; value: string }) {
   );
 }
 
+function AffordabilityRow({
+  label,
+  value,
+  formula,
+  last,
+}: {
+  label: string;
+  value: string;
+  formula: string;
+  last?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        paddingTop: 12,
+        paddingBottom: 12,
+        borderBottom: last ? 'none' : `1px solid ${DIV}`,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'baseline',
+          gap: 12,
+        }}
+      >
+        <span style={{ fontSize: 13, color: INK_3 }}>{label}</span>
+        <span
+          style={{
+            fontSize: 16,
+            fontWeight: 600,
+            color: INK,
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >
+          {value}
+        </span>
+      </div>
+      <div
+        style={{
+          fontSize: 11,
+          color: INK_4,
+          marginTop: 4,
+          fontFamily:
+            "ui-monospace, SFMono-Regular, Menlo, Monaco, 'Cascadia Mono', monospace",
+        }}
+      >
+        {formula}
+      </div>
+    </div>
+  );
+}
+
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div
@@ -236,6 +336,8 @@ function StatCard({ label, value }: { label: string; value: string }) {
 
 // ── chart ────────────────────────────────────────────────────────────────
 
+const APPRECIATION_COLOR = '#c0392b';
+
 interface ChartProps {
   snapshots: { month: number; balance: number }[];
   totalCashNeeded: number;
@@ -243,6 +345,8 @@ interface ChartProps {
   goalMonth: number | null;
   goalBalance: number;
   netEquity: number;
+  appreciationSnapshots: { month: number; appreciatedGoal: number }[];
+  annualAppreciationPct: number;
 }
 
 function TimelineChart({
@@ -252,19 +356,24 @@ function TimelineChart({
   goalMonth,
   goalBalance,
   netEquity,
+  appreciationSnapshots,
+  annualAppreciationPct,
 }: ChartProps) {
-  const yMax = totalCashNeeded * 1.2;
   const lastMonth = snapshots[snapshots.length - 1]?.month ?? 0;
 
-  const chartData = useMemo(
-    () =>
-      snapshots.map((s) => ({
-        month: s.month,
-        balance: s.balance,
-        withEquity: s.balance + netEquity,
-      })),
-    [snapshots, debtFreeMonth, netEquity],
-  );
+  const chartData = useMemo(() => {
+    const apprByMonth = new Map(appreciationSnapshots.map((a) => [a.month, a.appreciatedGoal]));
+    return snapshots.map((s) => ({
+      month: s.month,
+      balance: s.balance,
+      withEquity: s.balance + netEquity,
+      appreciatedGoal: apprByMonth.get(s.month) ?? null,
+    }));
+  }, [snapshots, debtFreeMonth, netEquity, appreciationSnapshots]);
+
+  const lastAppreciatedGoal =
+    appreciationSnapshots[appreciationSnapshots.length - 1]?.appreciatedGoal ?? totalCashNeeded;
+  const yMax = Math.max(totalCashNeeded * 1.2, lastAppreciatedGoal * 1.05);
 
   // Y value of the goal dot is the withEquity value at goalMonth
   const goalDotY = goalMonth !== null ? goalBalance + netEquity : null;
@@ -326,8 +435,34 @@ function TimelineChart({
               y={totalCashNeeded}
               stroke={INK_4}
               strokeDasharray="6 4"
-              label={{ value: 'Goal', position: 'right', fill: INK_4, fontSize: 11 }}
+              label={{ value: 'Goal today', position: 'right', fill: INK_4, fontSize: 11 }}
             />
+            {/* Appreciation-adjusted goal */}
+            <Line
+              type="monotone"
+              dataKey="appreciatedGoal"
+              stroke={APPRECIATION_COLOR}
+              strokeWidth={1.5}
+              strokeDasharray="4 3"
+              strokeOpacity={0.6}
+              dot={false}
+              isAnimationActive={false}
+              legendType="none"
+              connectNulls
+            />
+            {appreciationSnapshots.length > 0 && (
+              <ReferenceDot
+                x={appreciationSnapshots[appreciationSnapshots.length - 1].month}
+                y={appreciationSnapshots[appreciationSnapshots.length - 1].appreciatedGoal}
+                r={0}
+                label={{
+                  value: `Goal if +${annualAppreciationPct}% appreciation`,
+                  position: 'right',
+                  fill: APPRECIATION_COLOR,
+                  fontSize: 11,
+                }}
+              />
+            )}
             {debtFreeMonth > 0 && debtFreeMonth <= lastMonth && (
               <ReferenceLine
                 x={debtFreeMonth}
@@ -406,6 +541,25 @@ function TimelineChart({
           </svg>
           <span style={{ fontSize: 11, color: INK_4 }}>Savings + equity</span>
         </div>
+        {annualAppreciationPct > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width="24" height="10" viewBox="0 0 24 10">
+              <line
+                x1="0"
+                y1="5"
+                x2="24"
+                y2="5"
+                stroke={APPRECIATION_COLOR}
+                strokeWidth="1.5"
+                strokeDasharray="4 3"
+                opacity="0.6"
+              />
+            </svg>
+            <span style={{ fontSize: 11, color: INK_4 }}>
+              Appreciation-adjusted goal
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -498,54 +652,58 @@ Interest earned = savings balance at goal − starting balance − all contribut
 // ── main ────────────────────────────────────────────────────────────────
 
 export default function HomeModelSimulator() {
-  // Phase 1
-  const [currentSavingsBalance, setCurrentSavingsBalance] = useState(25000);
-  const [currentMonthlySavings, setCurrentMonthlySavings] = useState(800);
-  const [annualReturnPct, setAnnualReturnPct] = useState(4.5);
+  const [inputs, setInputs, hydrated] = useLocalStorage<HomeModelInputState>(
+    'learnberry:home-inputs',
+    DEFAULT_HOME_INPUTS,
+  );
 
-  // Debt bridge
-  const [monthsUntilDebtFree, setMonthsUntilDebtFree] = useState(74);
-  const [monthlyContributionAfterDebt, setMonthlyContributionAfterDebt] =
-    useState(1250);
+  const update =
+    <K extends keyof HomeModelInputState>(field: K) =>
+    (v: HomeModelInputState[K]) =>
+      setInputs((prev) => ({ ...prev, [field]: v }));
 
-  // Current home
-  const [currentHomeValue, setCurrentHomeValue] = useState(500000);
-  const [remainingMortgage, setRemainingMortgage] = useState(300000);
-  const [sellingCostPct, setSellingCostPct] = useState(6);
+  const affordability = useMemo(() => {
+    const { targetHomePrice, downPaymentPct, mortgageRate, grossMonthlyIncome, existingMonthlyDebt } = inputs;
+    if (targetHomePrice <= 0) return null;
 
-  // Target home
-  const [targetHomePrice, setTargetHomePrice] = useState(750000);
-  const [downPaymentPct, setDownPaymentPct] = useState(20);
-  const [closingCostPct, setClosingCostPct] = useState(2);
+    const principal = targetHomePrice * (1 - downPaymentPct / 100);
+    const r = mortgageRate / 100 / 12;
+    const n = 360;
+    const monthlyPI =
+      r === 0
+        ? principal / n
+        : (principal * (r * Math.pow(1 + r, n))) / (Math.pow(1 + r, n) - 1);
+
+    const propertyTax = (targetHomePrice * 0.0125) / 12;
+    const insurance = (targetHomePrice * 0.005) / 12;
+    const piti = monthlyPI + propertyTax + insurance;
+
+    const housingRatio = grossMonthlyIncome > 0 ? piti / grossMonthlyIncome : null;
+    const dti =
+      grossMonthlyIncome > 0
+        ? (piti + existingMonthlyDebt) / grossMonthlyIncome
+        : null;
+
+    return { monthlyPI, propertyTax, insurance, piti, housingRatio, dti };
+  }, [inputs]);
 
   const result = useMemo(
     () =>
       calculateHomeModel({
-        currentMonthlySavings,
-        currentSavingsBalance,
-        annualReturn: annualReturnPct / 100,
-        monthsUntilDebtFree,
-        monthlyContributionAfterDebt,
-        currentHomeValue,
-        remainingMortgage,
-        sellingCostPercent: sellingCostPct / 100,
-        targetHomePrice,
-        downPaymentPercent: downPaymentPct / 100,
-        closingCostPercent: closingCostPct / 100,
+        currentMonthlySavings: inputs.currentMonthlySavings,
+        currentSavingsBalance: inputs.currentSavingsBalance,
+        annualReturn: inputs.annualReturnPct / 100,
+        monthsUntilDebtFree: inputs.monthsUntilDebtFree,
+        monthlyContributionAfterDebt: inputs.monthlyContributionAfterDebt,
+        currentHomeValue: inputs.currentHomeValue,
+        remainingMortgage: inputs.remainingMortgage,
+        sellingCostPercent: inputs.sellingCostPct / 100,
+        targetHomePrice: inputs.targetHomePrice,
+        downPaymentPercent: inputs.downPaymentPct / 100,
+        closingCostPercent: inputs.closingCostPct / 100,
+        annualAppreciation: inputs.annualAppreciationPct / 100,
       }),
-    [
-      currentSavingsBalance,
-      currentMonthlySavings,
-      annualReturnPct,
-      monthsUntilDebtFree,
-      monthlyContributionAfterDebt,
-      currentHomeValue,
-      remainingMortgage,
-      sellingCostPct,
-      targetHomePrice,
-      downPaymentPct,
-      closingCostPct,
-    ],
+    [inputs],
   );
 
   return (
@@ -572,144 +730,157 @@ export default function HomeModelSimulator() {
           paydown, the sale of a current home, and post-debt cash flow.
         </p>
 
-        {/* Section 1 — Right now */}
-        <SectionLabel>Right now</SectionLabel>
-        <InputCard>
-          <div>
-            <FieldLabel>Current savings balance</FieldLabel>
-            <NumberField
-              defaultValue={currentSavingsBalance}
-              onChange={setCurrentSavingsBalance}
-              prefix="$"
-              step={500}
-            />
-          </div>
-          <div>
-            <FieldLabel>Monthly savings contribution</FieldLabel>
-            <NumberField
-              defaultValue={currentMonthlySavings}
-              onChange={setCurrentMonthlySavings}
-              prefix="$"
-              step={50}
-            />
-            <FieldHelper>
-              What you&apos;re putting away now, during debt paydown
-            </FieldHelper>
-          </div>
-          <div>
-            <FieldLabel>Annual return on savings</FieldLabel>
-            <NumberField
-              defaultValue={annualReturnPct}
-              onChange={setAnnualReturnPct}
-              suffix="%"
-              step={0.1}
-            />
-            <FieldHelper>HYSA or investment return</FieldHelper>
-          </div>
-        </InputCard>
+        <div key={hydrated ? 'h' : 'd'}>
+          {/* Section 1 — Right now */}
+          <SectionLabel>Right now</SectionLabel>
+          <InputCard>
+            <div>
+              <FieldLabel>Current savings balance</FieldLabel>
+              <NumberField
+                defaultValue={inputs.currentSavingsBalance}
+                onChange={update('currentSavingsBalance')}
+                prefix="$"
+                step={500}
+              />
+            </div>
+            <div>
+              <FieldLabel>Monthly savings contribution</FieldLabel>
+              <NumberField
+                defaultValue={inputs.currentMonthlySavings}
+                onChange={update('currentMonthlySavings')}
+                prefix="$"
+                step={50}
+              />
+              <FieldHelper>
+                What you&apos;re putting away now, during debt paydown
+              </FieldHelper>
+            </div>
+            <div>
+              <FieldLabel>Annual return on savings</FieldLabel>
+              <NumberField
+                defaultValue={inputs.annualReturnPct}
+                onChange={update('annualReturnPct')}
+                suffix="%"
+                step={0.1}
+              />
+              <FieldHelper>HYSA or investment return</FieldHelper>
+            </div>
+          </InputCard>
 
-        {/* Section 2 — Debt paydown */}
-        <SectionLabel>Debt paydown</SectionLabel>
-        <p style={{ fontSize: 12, color: INK_4, marginTop: -8, marginBottom: 12 }}>
-          From your debt paydown model, or estimate below
-        </p>
-        <InputCard>
-          <div>
-            <FieldLabel>Months until debt-free</FieldLabel>
-            <NumberField
-              defaultValue={monthsUntilDebtFree}
-              onChange={setMonthsUntilDebtFree}
-              step={1}
-            />
-          </div>
-          <div>
-            <FieldLabel>Monthly cash flow unlocked</FieldLabel>
-            <NumberField
-              defaultValue={monthlyContributionAfterDebt}
-              onChange={setMonthlyContributionAfterDebt}
-              prefix="$"
-              step={50}
-            />
-            <FieldHelper>
-              Total payments freed when all debts clear
-            </FieldHelper>
-          </div>
-        </InputCard>
+          {/* Section 2 — Debt paydown */}
+          <SectionLabel>Debt paydown</SectionLabel>
+          <p style={{ fontSize: 12, color: INK_4, marginTop: -8, marginBottom: 12 }}>
+            From your debt paydown model, or estimate below
+          </p>
+          <InputCard>
+            <div>
+              <FieldLabel>Months until debt-free</FieldLabel>
+              <NumberField
+                defaultValue={inputs.monthsUntilDebtFree}
+                onChange={update('monthsUntilDebtFree')}
+                step={1}
+              />
+            </div>
+            <div>
+              <FieldLabel>Monthly cash flow unlocked</FieldLabel>
+              <NumberField
+                defaultValue={inputs.monthlyContributionAfterDebt}
+                onChange={update('monthlyContributionAfterDebt')}
+                prefix="$"
+                step={50}
+              />
+              <FieldHelper>
+                Total payments freed when all debts clear
+              </FieldHelper>
+            </div>
+          </InputCard>
 
-        {/* Section 3 — Current home */}
-        <SectionLabel>Your current home</SectionLabel>
-        <InputCard>
-          <div>
-            <FieldLabel>Estimated sale price</FieldLabel>
-            <NumberField
-              defaultValue={currentHomeValue}
-              onChange={setCurrentHomeValue}
-              prefix="$"
-              step={5000}
+          {/* Section 3 — Current home */}
+          <SectionLabel>Your current home</SectionLabel>
+          <InputCard>
+            <div>
+              <FieldLabel>Estimated sale price</FieldLabel>
+              <NumberField
+                defaultValue={inputs.currentHomeValue}
+                onChange={update('currentHomeValue')}
+                prefix="$"
+                step={5000}
+              />
+            </div>
+            <div>
+              <FieldLabel>Remaining mortgage balance</FieldLabel>
+              <NumberField
+                defaultValue={inputs.remainingMortgage}
+                onChange={update('remainingMortgage')}
+                prefix="$"
+                step={5000}
+              />
+            </div>
+            <div>
+              <FieldLabel>Selling costs</FieldLabel>
+              <NumberField
+                defaultValue={inputs.sellingCostPct}
+                onChange={update('sellingCostPct')}
+                suffix="%"
+                step={0.5}
+              />
+              <FieldHelper>
+                Agent fees + closing costs, typically 5–6%
+              </FieldHelper>
+            </div>
+            <CalculatedBox
+              label="Estimated net equity"
+              value={fmtMoney(result.netEquity)}
             />
-          </div>
-          <div>
-            <FieldLabel>Remaining mortgage balance</FieldLabel>
-            <NumberField
-              defaultValue={remainingMortgage}
-              onChange={setRemainingMortgage}
-              prefix="$"
-              step={5000}
-            />
-          </div>
-          <div>
-            <FieldLabel>Selling costs</FieldLabel>
-            <NumberField
-              defaultValue={sellingCostPct}
-              onChange={setSellingCostPct}
-              suffix="%"
-              step={0.5}
-            />
-            <FieldHelper>
-              Agent fees + closing costs, typically 5–6%
-            </FieldHelper>
-          </div>
-          <CalculatedBox
-            label="Estimated net equity"
-            value={fmtMoney(result.netEquity)}
-          />
-        </InputCard>
+          </InputCard>
 
-        {/* Section 4 — Target home */}
-        <SectionLabel>Target home</SectionLabel>
-        <InputCard>
-          <div>
-            <FieldLabel>Target home price</FieldLabel>
-            <NumberField
-              defaultValue={targetHomePrice}
-              onChange={setTargetHomePrice}
-              prefix="$"
-              step={5000}
+          {/* Section 4 — Target home */}
+          <SectionLabel>Target home</SectionLabel>
+          <InputCard>
+            <div>
+              <FieldLabel>Target home price</FieldLabel>
+              <NumberField
+                defaultValue={inputs.targetHomePrice}
+                onChange={update('targetHomePrice')}
+                prefix="$"
+                step={5000}
+              />
+            </div>
+            <div>
+              <FieldLabel>Down payment</FieldLabel>
+              <NumberField
+                defaultValue={inputs.downPaymentPct}
+                onChange={update('downPaymentPct')}
+                suffix="%"
+                step={1}
+              />
+            </div>
+            <div>
+              <FieldLabel>Closing costs</FieldLabel>
+              <NumberField
+                defaultValue={inputs.closingCostPct}
+                onChange={update('closingCostPct')}
+                suffix="%"
+                step={0.5}
+              />
+            </div>
+            <div>
+              <FieldLabel>Annual home price appreciation</FieldLabel>
+              <NumberField
+                defaultValue={inputs.annualAppreciationPct}
+                onChange={update('annualAppreciationPct')}
+                suffix="%"
+                step={0.5}
+                min={0}
+              />
+              <FieldHelper>Historical So-Cal average ~4–6% annually</FieldHelper>
+            </div>
+            <CalculatedBox
+              label="Total cash needed"
+              value={fmtMoney(result.totalCashNeeded)}
             />
-          </div>
-          <div>
-            <FieldLabel>Down payment</FieldLabel>
-            <NumberField
-              defaultValue={downPaymentPct}
-              onChange={setDownPaymentPct}
-              suffix="%"
-              step={1}
-            />
-          </div>
-          <div>
-            <FieldLabel>Closing costs</FieldLabel>
-            <NumberField
-              defaultValue={closingCostPct}
-              onChange={setClosingCostPct}
-              suffix="%"
-              step={0.5}
-            />
-          </div>
-          <CalculatedBox
-            label="Total cash needed"
-            value={fmtMoney(result.totalCashNeeded)}
-          />
-        </InputCard>
+          </InputCard>
+        </div>
 
         {/* Section 5 — Result */}
         <div style={{ marginTop: 32 }}>
@@ -792,6 +963,30 @@ export default function HomeModelSimulator() {
             />
           </div>
 
+          {inputs.annualAppreciationPct > 0 && (
+            <div
+              className="grid grid-cols-1 md:grid-cols-3"
+              style={{ gap: 10, marginBottom: 24 }}
+            >
+              <StatCard
+                label="Home price at buy date"
+                value={fmtMoneyShort(result.appreciatedHomePrice)}
+              />
+              <StatCard
+                label="Revised cash needed"
+                value={fmtMoney(result.appreciatedCashNeeded)}
+              />
+              <StatCard
+                label={
+                  result.appreciationGap === 0
+                    ? 'Your trajectory covers appreciation'
+                    : 'Extra needed vs today’s price'
+                }
+                value={fmtMoney(result.appreciationGap)}
+              />
+            </div>
+          )}
+
           {/* Chart */}
           <div className="md:[&>div]:!h-[340px]">
             <TimelineChart
@@ -805,10 +1000,102 @@ export default function HomeModelSimulator() {
               goalMonth={result.goalMonth}
               goalBalance={result.totalSavedAtGoal}
               netEquity={result.netEquity}
+              appreciationSnapshots={result.appreciationSnapshots.filter(
+                (a) =>
+                  a.month <=
+                  (result.goalMonth !== null ? result.goalMonth + 6 : 120),
+              )}
+              annualAppreciationPct={inputs.annualAppreciationPct}
             />
           </div>
 
           <CollapsibleMath />
+        </div>
+
+        {/* Affordability check */}
+        <div style={{ marginTop: 32 }}>
+          <SectionLabel>Affordability check</SectionLabel>
+
+          <div key={hydrated ? 'h-aff' : 'd-aff'}>
+            <InputCard>
+              <div>
+                <FieldLabel>Mortgage rate</FieldLabel>
+                <NumberField
+                  defaultValue={inputs.mortgageRate}
+                  onChange={update('mortgageRate')}
+                  suffix="%"
+                  step={0.125}
+                />
+                <FieldHelper>Annual interest rate on the new mortgage</FieldHelper>
+              </div>
+              <div>
+                <FieldLabel>Gross monthly income</FieldLabel>
+                <NumberField
+                  defaultValue={inputs.grossMonthlyIncome}
+                  onChange={update('grossMonthlyIncome')}
+                  prefix="$"
+                  step={100}
+                />
+                <FieldHelper>Household income before taxes</FieldHelper>
+              </div>
+              <div>
+                <FieldLabel>Existing monthly debt payments</FieldLabel>
+                <NumberField
+                  defaultValue={inputs.existingMonthlyDebt}
+                  onChange={update('existingMonthlyDebt')}
+                  prefix="$"
+                  step={50}
+                />
+                <FieldHelper>Car, student loans, etc. (optional)</FieldHelper>
+              </div>
+            </InputCard>
+          </div>
+
+          {affordability && (
+            <div
+              style={{
+                background: 'white',
+                border: `1px solid ${DIV}`,
+                borderRadius: 16,
+                padding: 24,
+                marginTop: 12,
+              }}
+            >
+              <AffordabilityRow
+                label="Monthly P&I"
+                value={fmtUSD(affordability.monthlyPI)}
+                formula="P × [r(1+r)^n] / [(1+r)^n − 1]"
+              />
+              <AffordabilityRow
+                label="Est. Monthly PITI"
+                value={fmtUSD(affordability.piti)}
+                formula="P&I + property tax + insurance (estimates)"
+              />
+              {affordability.housingRatio !== null && (
+                <AffordabilityRow
+                  label="Housing Ratio"
+                  value={fmtPct1(affordability.housingRatio)}
+                  formula="PITI / gross monthly income"
+                />
+              )}
+              {affordability.dti !== null && (
+                <AffordabilityRow
+                  label="DTI"
+                  value={fmtPct1(affordability.dti)}
+                  formula="(PITI + existing debt) / gross monthly income"
+                  last
+                />
+              )}
+
+              <p style={{ fontSize: 12, color: INK_3, marginTop: 18, lineHeight: 1.6 }}>
+                Tax and insurance are estimates. Actual amounts vary by location.
+              </p>
+              <p style={{ fontSize: 12, color: INK_3, marginTop: 8, lineHeight: 1.6 }}>
+                Lenders commonly use 28% as a housing ratio guideline and 36% as a
+                DTI guideline. These are reference points, not rules.
+              </p>
+            </div>
+          )}
         </div>
       </main>
       <Footer />

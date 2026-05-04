@@ -15,6 +15,12 @@ import Nav from '@/components/layout/Nav';
 import Footer from '@/components/layout/Footer';
 import { calculateDebtPaydown } from '@/lib/models/debtPaydown';
 import type { Debt, StrategyResult, DebtPaydownResult } from '@/lib/models/debtPaydown';
+import { useLocalStorage } from '@/lib/hooks/useLocalStorage';
+
+type DebtInputState = {
+  debts: Debt[];
+  extraBudget: number;
+};
 
 const TEAL = '#167e7f';
 const TEAL_DARK = '#0f4f50';
@@ -701,11 +707,25 @@ Avalanche: extra budget applied to highest APR first, payment rolls on payoff`}
 
 // ── Main component ────────────────────────────────────────────────────────
 
+const DEFAULT_DEBT_INPUTS: DebtInputState = {
+  debts: [{ id: 'seed', name: '', balance: 0, apr: 0, monthlyPayment: 0 }],
+  extraBudget: 0,
+};
+
 export default function DebtPaydownSimulator() {
-  const [debts, setDebts] = useState<Debt[]>(() => [
-    { id: uid(), name: '', balance: 0, apr: 0, monthlyPayment: 0 },
-  ]);
-  const [extraBudget, setExtraBudget] = useState(0);
+  const [inputs, setInputs, hydrated] = useLocalStorage<DebtInputState>(
+    'learnberry:debt-inputs',
+    DEFAULT_DEBT_INPUTS,
+  );
+  const { debts, extraBudget } = inputs;
+
+  const setDebts = (updater: Debt[] | ((prev: Debt[]) => Debt[])) =>
+    setInputs((prev) => ({
+      ...prev,
+      debts: typeof updater === 'function' ? updater(prev.debts) : updater,
+    }));
+  const setExtraBudget = (v: number) =>
+    setInputs((prev) => ({ ...prev, extraBudget: v }));
 
   const updateDebt = (id: string, updated: Debt) => {
     setDebts((prev) => prev.map((d) => (d.id === id ? updated : d)));
@@ -761,62 +781,64 @@ export default function DebtPaydownSimulator() {
           </p>
         </header>
 
-        {/* Section 1: Debts */}
-        <Section title="Your debts">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {debts.map((d) => (
-              <DebtCard
-                key={d.id}
-                debt={d}
-                onChange={(u) => updateDebt(d.id, u)}
-                onRemove={() => removeDebt(d.id)}
-                canRemove={debts.length > 1}
-              />
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={addDebt}
-            style={{
-              marginTop: 14,
-              fontSize: 13,
-              fontWeight: 500,
-              color: TEAL,
-              background: 'transparent',
-              border: 'none',
-              padding: 0,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            + Add debt
-          </button>
-        </Section>
+        <div key={hydrated ? 'h' : 'd'}>
+          {/* Section 1: Debts */}
+          <Section title="Your debts">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {debts.map((d) => (
+                <DebtCard
+                  key={d.id}
+                  debt={d}
+                  onChange={(u) => updateDebt(d.id, u)}
+                  onRemove={() => removeDebt(d.id)}
+                  canRemove={debts.length > 1}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={addDebt}
+              style={{
+                marginTop: 14,
+                fontSize: 13,
+                fontWeight: 500,
+                color: TEAL,
+                background: 'transparent',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              + Add debt
+            </button>
+          </Section>
 
-        {/* Section 2: Extra budget */}
-        <Section title="Extra monthly budget">
-          <div
-            style={{
-              background: 'white',
-              border: `1px solid ${DIV}`,
-              borderRadius: 12,
-              padding: 20,
-            }}
-          >
-            <SliderRow
-              label="Extra monthly budget"
-              value={extraBudget}
-              onChange={setExtraBudget}
-              min={0}
-              max={2000}
-              step={50}
-              format={(v) => `$${v.toLocaleString()}`}
-            />
-            <p style={{ fontSize: 12, color: INK_4, marginTop: 14, lineHeight: 1.5 }}>
-              Applied on top of all minimum payments. Rolls automatically when a debt clears.
-            </p>
-          </div>
-        </Section>
+          {/* Section 2: Extra budget */}
+          <Section title="Extra monthly budget">
+            <div
+              style={{
+                background: 'white',
+                border: `1px solid ${DIV}`,
+                borderRadius: 12,
+                padding: 20,
+              }}
+            >
+              <SliderRow
+                label="Extra monthly budget"
+                value={extraBudget}
+                onChange={setExtraBudget}
+                min={0}
+                max={2000}
+                step={50}
+                format={(v) => `$${v.toLocaleString()}`}
+              />
+              <p style={{ fontSize: 12, color: INK_4, marginTop: 14, lineHeight: 1.5 }}>
+                Applied on top of all minimum payments. Rolls automatically when a debt clears.
+              </p>
+            </div>
+          </Section>
+        </div>
 
         {/* Section 3: Results */}
         {hasValidDebt ? (
