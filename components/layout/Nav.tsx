@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 
 export default function Nav() {
@@ -22,29 +23,16 @@ export default function Nav() {
           paddingRight: 'clamp(20px, 4vw, 56px)',
         }}
       >
-        {/* Logo + wordmark */}
-        <Link href="/" className="flex items-center gap-[8px]">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <circle cx="10" cy="10" r="8.5" stroke="#167e7f" strokeWidth="1.4" />
-            <path
-              d="M6.5 13.5 C7.5 10.5, 9 8, 10 7 C11 8, 12.5 10.5, 13.5 13.5"
-              stroke="#167e7f"
-              strokeWidth="1.4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-          </svg>
-          <span
-            style={{
-              fontSize: 15,
-              fontWeight: 600,
-              color: '#1e1c18',
-              letterSpacing: '-0.015em',
-            }}
-          >
-            learnberry
-          </span>
+        {/* Logo mark only */}
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/logo.svg"
+            alt="learnberry"
+            width={32}
+            height={32}
+            style={{ objectFit: 'contain', height: 32, width: 'auto' }}
+            priority
+          />
         </Link>
 
         {/* Right links */}
