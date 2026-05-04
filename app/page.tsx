@@ -78,16 +78,6 @@ function FeaturedChart() {
   );
 }
 
-function HomeSpark() {
-  return (
-    <svg viewBox="0 0 200 56" fill="none" style={{ width: '100%', height: 56, display: 'block' }}>
-      <line x1="0" y1="10" x2="200" y2="10" stroke={INK_4} strokeDasharray="4 3" strokeWidth="1" opacity="0.55" />
-      <path d="M0,46 C40,42 80,32 120,20 C150,14 180,11 200,10" fill="none" stroke={TEAL} strokeWidth="1.8" strokeLinecap="round" />
-      <circle cx="148" cy="13" r="2.8" fill={TEAL} />
-    </svg>
-  );
-}
-
 function DebtSpark() {
   return (
     <svg viewBox="0 0 200 56" fill="none" style={{ width: '100%', height: 56, display: 'block' }}>
@@ -195,7 +185,7 @@ export default function Home() {
       >
         <div
           className="grid grid-cols-1 md:grid-cols-2"
-          style={{ gap: 'clamp(32px, 5vw, 80px)', alignItems: 'start' }}
+          style={{ gap: 'clamp(32px, 5vw, 80px)', alignItems: 'end' }}
         >
           <h1
             style={{
@@ -217,7 +207,7 @@ export default function Home() {
             <p
               style={{
                 fontFamily: SERIF,
-                fontSize: 'clamp(16px, 1.35vw, 20px)',
+                fontSize: 'clamp(22px, 1.35vw, 20px)',
                 fontWeight: 400,
                 lineHeight: 1.55,
                 color: INK_2,
