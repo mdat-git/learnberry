@@ -359,17 +359,38 @@ function TimelineChart({
   appreciationSnapshots,
   annualAppreciationPct,
 }: ChartProps) {
-  const lastMonth = snapshots[snapshots.length - 1]?.month ?? 0;
+  const lastSimMonth = snapshots[snapshots.length - 1]?.month ?? 0;
+  const lastApprMonth = appreciationSnapshots[appreciationSnapshots.length - 1]?.month ?? 0;
+  const lastMonth = Math.max(lastSimMonth, lastApprMonth);
 
   const chartData = useMemo(() => {
     const apprByMonth = new Map(appreciationSnapshots.map((a) => [a.month, a.appreciatedGoal]));
-    return snapshots.map((s) => ({
+    const simMonths = new Set(snapshots.map((s) => s.month));
+
+    const points = snapshots.map((s) => ({
       month: s.month,
-      balance: s.balance,
-      withEquity: s.balance + netEquity,
+      balance: s.balance as number | null,
+      withEquity: (s.balance + netEquity) as number | null,
       appreciatedGoal: apprByMonth.get(s.month) ?? null,
+      goalToday: totalCashNeeded,
     }));
-  }, [snapshots, debtFreeMonth, netEquity, appreciationSnapshots]);
+
+    // Append appreciation-only months beyond the simulation window
+    for (const a of appreciationSnapshots) {
+      if (!simMonths.has(a.month)) {
+        points.push({
+          month: a.month,
+          balance: null,
+          withEquity: null,
+          appreciatedGoal: a.appreciatedGoal,
+          goalToday: totalCashNeeded,
+        });
+      }
+    }
+
+    points.sort((a, b) => a.month - b.month);
+    return points;
+  }, [snapshots, debtFreeMonth, netEquity, appreciationSnapshots, totalCashNeeded]);
 
   const lastAppreciatedGoal =
     appreciationSnapshots[appreciationSnapshots.length - 1]?.appreciatedGoal ?? totalCashNeeded;
@@ -377,6 +398,16 @@ function TimelineChart({
 
   // Y value of the goal dot is the withEquity value at goalMonth
   const goalDotY = goalMonth !== null ? goalBalance + netEquity : null;
+
+  // First month where savings+equity crosses the appreciated goal line
+  const appreciatedGoalDot = useMemo(() => {
+    for (const d of chartData) {
+      if (d.appreciatedGoal !== null && d.withEquity !== null && d.withEquity >= d.appreciatedGoal) {
+        return { month: d.month, y: d.appreciatedGoal };
+      }
+    }
+    return null;
+  }, [chartData]);
 
   const yearTicks = useMemo(() => {
     const ticks: number[] = [0];
@@ -424,18 +455,30 @@ function TimelineChart({
                 const m = Number(label);
                 return m === 0 ? 'Now' : `Month ${m}`;
               }}
-              formatter={(value, name) =>
-                [
-                  fmtMoney(Number(value)),
-                  name === 'balance' ? 'Cash savings' : 'Savings + equity',
-                ] as [string, string]
-              }
+              formatter={(value, name) => {
+                const labels: Record<string, string> = {
+                  balance: 'Savings',
+                  withEquity: 'Savings + equity',
+                  appreciatedGoal: 'Appreciated goal',
+                  goalToday: 'Goal today',
+                };
+                return [fmtMoney(Number(value)), labels[name as string] ?? name] as [string, string];
+              }}
             />
             <ReferenceLine
               y={totalCashNeeded}
               stroke={INK_4}
               strokeDasharray="6 4"
-              label={{ value: 'Goal today', position: 'right', fill: INK_4, fontSize: 11 }}
+            />
+            {/* Invisible series so "Goal today" appears in the tooltip */}
+            <Line
+              type="monotone"
+              dataKey="goalToday"
+              stroke={INK_4}
+              strokeWidth={0}
+              dot={false}
+              isAnimationActive={false}
+              legendType="none"
             />
             {/* Appreciation-adjusted goal */}
             <Line
@@ -450,17 +493,14 @@ function TimelineChart({
               legendType="none"
               connectNulls
             />
-            {appreciationSnapshots.length > 0 && (
+            {appreciatedGoalDot !== null && (
               <ReferenceDot
-                x={appreciationSnapshots[appreciationSnapshots.length - 1].month}
-                y={appreciationSnapshots[appreciationSnapshots.length - 1].appreciatedGoal}
-                r={0}
-                label={{
-                  value: `Goal if +${annualAppreciationPct}% appreciation`,
-                  position: 'right',
-                  fill: APPRECIATION_COLOR,
-                  fontSize: 11,
-                }}
+                x={appreciatedGoalDot.month}
+                y={appreciatedGoalDot.y}
+                r={5}
+                fill={APPRECIATION_COLOR}
+                stroke="white"
+                strokeWidth={2}
               />
             )}
             {debtFreeMonth > 0 && debtFreeMonth <= lastMonth && (
@@ -515,6 +555,7 @@ function TimelineChart({
       <div
         style={{
           display: 'flex',
+          flexWrap: 'wrap',
           gap: 20,
           justifyContent: 'center',
           marginTop: 10,
@@ -524,7 +565,7 @@ function TimelineChart({
           <svg width="24" height="10" viewBox="0 0 24 10">
             <line x1="0" y1="5" x2="24" y2="5" stroke={TEAL} strokeWidth="2" />
           </svg>
-          <span style={{ fontSize: 11, color: INK_4 }}>Cash savings</span>
+          <span style={{ fontSize: 11, color: INK_4 }}>Savings</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <svg width="24" height="10" viewBox="0 0 24 10">
@@ -555,9 +596,7 @@ function TimelineChart({
                 opacity="0.6"
               />
             </svg>
-            <span style={{ fontSize: 11, color: INK_4 }}>
-              Appreciation-adjusted goal
-            </span>
+            <span style={{ fontSize: 11, color: INK_4 }}>Appreciated goal</span>
           </div>
         )}
       </div>
@@ -705,6 +744,13 @@ export default function HomeModelSimulator() {
       }),
     [inputs],
   );
+
+  const chartEndMonth = useMemo(() => {
+    const appr = result.appreciationSnapshots;
+    return appr.length > 0
+      ? appr[appr.length - 1].month
+      : (result.goalMonth ?? 120) + 6;
+  }, [result]);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#fafaf8', color: INK }}>
@@ -990,21 +1036,13 @@ export default function HomeModelSimulator() {
           {/* Chart */}
           <div className="md:[&>div]:!h-[340px]">
             <TimelineChart
-              snapshots={result.snapshots.filter(
-                (s) =>
-                  s.month <=
-                  (result.goalMonth !== null ? result.goalMonth + 6 : 120),
-              )}
+              snapshots={result.snapshots.filter((s) => s.month <= chartEndMonth)}
               totalCashNeeded={result.totalCashNeeded}
               debtFreeMonth={result.debtFreeMonth}
               goalMonth={result.goalMonth}
               goalBalance={result.totalSavedAtGoal}
               netEquity={result.netEquity}
-              appreciationSnapshots={result.appreciationSnapshots.filter(
-                (a) =>
-                  a.month <=
-                  (result.goalMonth !== null ? result.goalMonth + 6 : 120),
-              )}
+              appreciationSnapshots={result.appreciationSnapshots}
               annualAppreciationPct={inputs.annualAppreciationPct}
             />
           </div>

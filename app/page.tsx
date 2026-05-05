@@ -197,11 +197,7 @@ export default function Home() {
               textWrap: 'balance',
             }}
           >
-            Financial models that put{' '}
-            <span style={{ borderBottom: `2px solid ${INK}`, paddingBottom: 4 }}>
-              every assumption
-            </span>{' '}
-            in plain view.
+            Financial models that put every assumption in plain view.
           </h1>
           <div style={{ paddingTop: 'clamp(8px, 1vw, 16px)' }}>
             <p
@@ -214,10 +210,10 @@ export default function Home() {
                 textWrap: 'pretty',
               }}
             >
-              Learnberry builds financial models from first principles —
-              standard time-value-of-money equations with every assumption
-              visible and adjustable. See where your current trajectory leads,
-              and what changes if you change one thing.
+              Learnberry turns everyday goals into simple, transparent models. 
+              No vague advice, no black box, no AI suggesions. Just plain math so 
+              you can see where your current path leads, and where it could go when you
+              change one thing.  
             </p>
           </div>
         </div>
@@ -480,9 +476,9 @@ export default function Home() {
                 textWrap: 'pretty',
               }}
             >
-              Learnberry is built to make that visible — not with advice, but
-              with a model you can see, adjust, and trust. Standard math,
-              shown openly, with every assumption you can change.
+              Learnberry is built to make that visible. Not with advice, but
+              with a model you can see, adjust, and trust. Standard math with every variable 
+              in control.
             </p>
           </div>
         </div>

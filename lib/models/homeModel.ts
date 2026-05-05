@@ -207,10 +207,24 @@ export function calculateHomeModel(inputs: HomeModelInputs): HomeModelResult {
   const appreciatedCashNeeded = appreciatedHomePrice * cashNeededFraction;
   const appreciationGap = Math.max(0, appreciatedCashNeeded - totalCashNeeded);
 
-  const appreciationWindow = Math.min(
+  // Extend appreciation snapshots until savings+equity crosses the appreciated goal,
+  // so the chart can show the crossing dot. Cap at goalMonth+120 to stay reasonable.
+  const maxApprWindow = Math.min(
     main.snapshots.length - 1,
-    (goalMonth ?? 120) + 6,
+    (goalMonth ?? 120) + 120,
   );
+  let appreciationWindow = (goalMonth ?? 120) + 6; // minimum default
+  for (let i = 0; i < main.snapshots.length; i++) {
+    const m = main.snapshots[i].month;
+    if (m > maxApprWindow) break;
+    const withEquity = main.snapshots[i].balance + netEquity;
+    const apprGoal = targetHomePrice * Math.pow(1 + monthlyAppreciation, m) * cashNeededFraction;
+    if (withEquity >= apprGoal) {
+      appreciationWindow = Math.min(m + 6, maxApprWindow);
+      break;
+    }
+  }
+
   const appreciationSnapshots: { month: number; appreciatedGoal: number }[] = [];
   for (let m = 0; m <= appreciationWindow; m++) {
     const priceAtM = targetHomePrice * Math.pow(1 + monthlyAppreciation, m);
