@@ -1,4 +1,18 @@
+'use client';
+
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ReferenceLine,
+  ReferenceDot,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
 import Nav from '@/components/layout/Nav';
 import Footer from '@/components/layout/Footer';
 
@@ -26,55 +40,217 @@ function Arrow({ size = 12, color = DARK }: { size?: number; color?: string }) {
   );
 }
 
-/* ── chart visuals ──────────────────────────────────────── */
-function FeaturedChart() {
-  // Larger illustrative chart for the dark featured panel.
+const fmtShort = (v: number) =>
+  v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(1)}M` : `$${Math.round(v / 1_000)}k`;
+
+function TeaserTooltip({ active, payload }: { active?: boolean; payload?: any[] }) {
+  if (!active || !payload?.length) return null;
+  const { month, balance } = payload[0].payload as { month: number; balance: number };
+  const yr = Math.floor(month / 12);
+  const mo = month % 12;
+  const timeLabel = yr > 0 ? (mo > 0 ? `Yr ${yr}, Mo ${mo}` : `Yr ${yr}`) : `Mo ${month}`;
   return (
-    <svg viewBox="0 0 460 320" fill="none" style={{ width: '100%', height: 'auto', display: 'block' }}>
-      <defs>
-        <linearGradient id="featGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(237,234,227,0.18)" />
-          <stop offset="100%" stopColor="rgba(237,234,227,0)" />
-        </linearGradient>
-      </defs>
-      {/* horizontal grid */}
-      {[60, 130, 200, 270].map((y) => (
-        <line key={y} x1="40" y1={y} x2="430" y2={y} stroke="rgba(237,234,227,0.06)" strokeWidth="1" />
-      ))}
-      {/* goal line */}
-      <line x1="40" y1="60" x2="430" y2="60" stroke="rgba(237,234,227,0.45)" strokeDasharray="6 4" strokeWidth="1" />
-      <text x="430" y="50" fill="rgba(237,234,227,0.55)" fontSize="11" textAnchor="end" fontFamily={SERIF}>goal</text>
-      {/* trajectory area */}
-      <path
-        d="M40,260 C100,240 160,200 220,150 C280,108 340,80 430,60 L430,290 L40,290 Z"
-        fill="url(#featGrad)"
-      />
-      {/* trajectory line */}
-      <path
-        d="M40,260 C100,240 160,200 220,150 C280,108 340,80 430,60"
-        fill="none"
-        stroke="#edeae3"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      {/* crossing dot */}
-      <circle cx="335" cy="80" r="4.5" fill="#edeae3" />
-      <circle cx="335" cy="80" r="9" fill="none" stroke="#edeae3" strokeWidth="1" opacity="0.35" />
-      {/* x-axis ticks (years) */}
-      {['Yr 1', 'Yr 2', 'Yr 3', 'Yr 4', 'Yr 5'].map((label, i) => (
-        <text
-          key={label}
-          x={40 + (i + 1) * 78}
-          y={304}
-          fill="rgba(237,234,227,0.45)"
-          fontSize="10"
-          textAnchor="middle"
-          fontFamily="ui-monospace, monospace"
+    <div style={{ background: 'rgba(20,18,14,0.95)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, padding: '10px 14px' }}>
+      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 6, fontFamily: 'ui-monospace, monospace', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{timeLabel}</div>
+      <div style={{ fontSize: 14, fontWeight: 600, color: 'white' }}>{fmtShort(balance)}</div>
+    </div>
+  );
+}
+
+/* ── interactive featured teaser ────────────────────────── */
+function FeaturedTeaser() {
+  const [homePrice, setHomePrice] = useState(800_000);
+  const [monthlySavings, setMonthlySavings] = useState(2_000);
+
+  const { points, goalMonth, goal } = useMemo(() => {
+    const goal = homePrice * 0.22;
+    const monthlyRate = 0.045 / 12;
+    let balance = 50_000;
+    const pts: { month: number; balance: number }[] = [];
+    let goalMonth: number | null = null;
+
+    for (let m = 0; m <= 240; m++) {
+      balance = balance * (1 + monthlyRate) + (m === 0 ? 0 : monthlySavings);
+      if (m % 3 === 0) pts.push({ month: m, balance: Math.round(balance) });
+      if (balance >= goal && goalMonth === null) goalMonth = m;
+    }
+
+    const trimMonth = goalMonth !== null ? goalMonth + 6 : 240;
+    return { points: pts.filter((p) => p.month <= trimMonth), goalMonth, goal };
+  }, [homePrice, monthlySavings]);
+
+  const goalPoint = goalMonth !== null
+    ? (points.find((p) => p.month >= goalMonth!) ?? null)
+    : null;
+
+  // Override CSS vars so the range thumb/track use white instead of teal
+  const sliderTheme = { '--teal': 'white', '--border': 'rgba(255,255,255,0.25)' } as React.CSSProperties;
+
+  return (
+    <div style={{ background: DARK, borderRadius: 18, padding: 'clamp(32px, 4vw, 48px)' }}>
+
+      {/* Top: full-width title + description */}
+      <div style={{ marginBottom: 22 }}>
+        <h2
+          style={{
+            fontSize: 'clamp(28px, 3.5vw, 42px)',
+            fontWeight: 700,
+            color: 'white',
+            letterSpacing: '-0.025em',
+            lineHeight: 1.15,
+          }}
         >
-          {label}
-        </text>
-      ))}
-    </svg>
+          {featured.title}
+        </h2>
+        <p style={{fontFamily: SERIF, fontSize: 14.5, color: 'rgba(255,255,255,0.45)', marginTop: 8 }}>
+          Move the sliders. See how your timeline shifts.
+        </p>
+      </div>
+
+      {/* Bottom: two columns */}
+      <div className="grid grid-cols-1 md:grid-cols-2" style={{ gap: 42 }}>
+
+        {/* Left: sliders */}
+        <div style={{ paddingTop: '36px' }}>
+
+          {/* Sliders — CSS vars override thumb/track to white */}
+          <div style={sliderTheme}>
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>
+                <span>Target home</span>
+                <span>{fmtShort(homePrice)}</span>
+              </div>
+              <input
+                type="range"
+                min={400_000}
+                max={2_000_000}
+                step={50_000}
+                value={homePrice}
+                onChange={(e) => setHomePrice(Number(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 8 }}>
+                <span>Monthly savings</span>
+                <span>${monthlySavings.toLocaleString()}/mo</span>
+              </div>
+              <input
+                type="range"
+                min={500}
+                max={5_000}
+                step={100}
+                value={monthlySavings}
+                onChange={(e) => setMonthlySavings(Number(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', marginTop: 12 }}>
+            Assumes $50k saved · 4.5% return · 20% down
+          </p>
+        </div>
+
+        {/* Right: goal callout + chart */}
+        <div>
+          {/* <p
+            style={{
+              fontFamily: 'Georgia, serif',
+              fontSize: 20,
+              fontWeight: 500,
+              color: 'white',
+              letterSpacing: '-0.01em',
+              marginBottom: 12,
+            }}
+          >
+            {goalMonth !== null
+              ? `Goal reached in year ${Math.ceil(goalMonth / 12) || 1}.`
+              : 'Goal reached in over 20 years.'}
+          </p> */}
+          <ResponsiveContainer width="100%" height={200}>
+            <AreaChart
+              data={points}
+              margin={{ top: 20, right: 20, bottom: 0, left: 8 }}
+            >
+              <defs>
+                <linearGradient id="teaserFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="white" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="white" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" />
+              <XAxis
+                dataKey="month"
+                type="number"
+                domain={['dataMin', 'dataMax']}
+                ticks={(() => {
+                  const max = points.length > 0 ? points[points.length - 1].month : 0;
+                  return Array.from({ length: Math.floor(max / 12) }, (_, i) => (i + 1) * 12);
+                })()}
+                tickFormatter={(m: number) => `Yr ${m / 12}`}
+                tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: 'ui-monospace, monospace' }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tickFormatter={fmtShort}
+                tick={{ fill: 'rgba(255,255,255,0.35)', fontSize: 10, fontFamily: 'ui-monospace, monospace' }}
+                axisLine={false}
+                tickLine={false}
+                width={44}
+              />
+              <Tooltip
+                content={<TeaserTooltip />}
+                cursor={{ stroke: 'rgba(255,255,255,0.15)', strokeWidth: 1 }}
+              />
+              <ReferenceLine
+                y={goal}
+                stroke="rgba(255,255,255,0.3)"
+                strokeDasharray="4 3"
+                label={{ value: 'goal', position: 'insideTopRight', fill: 'rgba(255,255,255,0.4)', fontSize: 10, fontFamily: 'ui-monospace, monospace' }}
+              />
+              <Area
+                type="monotone"
+                dataKey="balance"
+                stroke="white"
+                strokeWidth={1.5}
+                fill="url(#teaserFill)"
+                dot={false}
+                isAnimationActive={false}
+              />
+              {goalPoint !== null && (
+                <ReferenceDot
+                  x={goalPoint.month}
+                  y={goal}
+                  r={4}
+                  fill="white"
+                  stroke="transparent"
+                />
+              )}
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Full-width CTA */}
+      <Link href={featured.href} style={{ textDecoration: 'none', display: 'inline-block', marginTop: 28 }}>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            background: 'white',
+            color: '#171717',
+            borderRadius: 999,
+            padding: '8px 20px',
+            fontSize: 13,
+            fontWeight: 500,
+          }}
+        >
+          Use the detailed model →
+        </span>
+      </Link>
+    </div>
   );
 }
 
@@ -227,84 +403,7 @@ export default function Home() {
           paddingBottom: 'clamp(48px, 6vw, 80px)',
         }}
       >
-        <Link href={featured.href} style={{ display: 'block', textDecoration: 'none' }}>
-          <div
-            className="grid grid-cols-1 md:grid-cols-2"
-            style={{
-              background: DARK,
-              borderRadius: 18,
-              overflow: 'hidden',
-              minHeight: 380,
-            }}
-          >
-            {/* Left: text */}
-            <div
-              style={{
-                padding: 'clamp(36px, 5vw, 64px)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-              }}
-            >
-              <h2
-                style={{
-                  fontFamily: SERIF,
-                  fontSize: 'clamp(40px, 5vw, 64px)',
-                  fontWeight: 500,
-                  color: BG,
-                  lineHeight: 1.02,
-                  letterSpacing: '-0.012em',
-                  marginBottom: 22,
-                }}
-              >
-                {featured.title}
-              </h2>
-              <p
-                style={{
-                  fontFamily: SERIF,
-                  fontSize: 'clamp(15px, 1.2vw, 17px)',
-                  lineHeight: 1.6,
-                  color: '#a8a39a',
-                  fontWeight: 400,
-                  maxWidth: 420,
-                  marginBottom: 28,
-                }}
-              >
-                {featured.blurb}
-              </p>
-              <span
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  background: BG,
-                  color: DARK,
-                  padding: '11px 20px',
-                  borderRadius: 100,
-                  fontSize: 13,
-                  fontWeight: 500,
-                  width: 'fit-content',
-                }}
-              >
-                Open the model
-                <Arrow color={DARK} size={11} />
-              </span>
-            </div>
-            {/* Right: chart */}
-            <div
-              style={{
-                padding: 'clamp(28px, 4vw, 48px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'rgba(0,0,0,0.18)',
-                minHeight: 280,
-              }}
-            >
-              <FeaturedChart />
-            </div>
-          </div>
-        </Link>
+        <FeaturedTeaser />
       </section>
 
       {/* ── LATEST MODELS (3-col card grid) ── */}
