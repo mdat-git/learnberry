@@ -37,17 +37,11 @@ export default function Nav() {
 
         {/* Right links */}
         <div className="flex items-center" style={{ gap: 32 }}>
-          <Link
-            href="/#models"
-            style={{ fontSize: 14, color: '#1e1c18', fontWeight: 500 }}
-          >
-            Models
+          <Link href="/learn" style={{ fontSize: 14, color: '#1e1c18', fontWeight: 500 }}>
+            Learn
           </Link>
-          <Link
-            href="/about"
-            style={{ fontSize: 14, color: '#1e1c18', fontWeight: 500 }}
-          >
-            About
+          <Link href="/models" style={{ fontSize: 14, color: '#1e1c18', fontWeight: 500 }}>
+            Models
           </Link>
         </div>
       </div>
