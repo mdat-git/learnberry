@@ -334,6 +334,78 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+// ── collapsible section wrapper ───────────────────────────────────────────
+
+function CollapsibleSection({
+  label,
+  summary,
+  open,
+  onToggle,
+  children,
+}: {
+  label: string;
+  summary: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={onToggle}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          width: '100%',
+          background: 'none',
+          border: 'none',
+          padding: 0,
+          marginBottom: 16,
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 500,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: INK_4,
+          }}
+        >
+          {label}
+        </span>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          className={`transition-transform duration-200${open ? ' rotate-180' : ''}`}
+        >
+          <path
+            d="M4 6l4 4 4-4"
+            stroke={INK_4}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      {!open && (
+        <div style={{ fontSize: 12, color: INK_4, marginTop: -8, marginBottom: 16 }}>
+          {summary}
+        </div>
+      )}
+
+      {open && children}
+    </div>
+  );
+}
+
 // ── chart ────────────────────────────────────────────────────────────────
 
 const APPRECIATION_COLOR = '#c0392b';
@@ -752,6 +824,12 @@ export default function HomeModelSimulator() {
       : (result.goalMonth ?? 120) + 6;
   }, [result]);
 
+  const [open1, setOpen1] = useState(true); // Right now
+  const [open2, setOpen2] = useState(true); // Debt paydown
+  const [open3, setOpen3] = useState(true); // Current home
+  const [open4, setOpen4] = useState(true); // Target home
+  const [open5, setOpen5] = useState(true); // Affordability check
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#fafaf8', color: INK }}>
       <Nav />
@@ -778,154 +856,178 @@ export default function HomeModelSimulator() {
 
         <div key={hydrated ? 'h' : 'd'}>
           {/* Section 1 — Right now */}
-          <SectionLabel>Right now</SectionLabel>
-          <InputCard>
-            <div>
-              <FieldLabel>Current savings balance</FieldLabel>
-              <NumberField
-                defaultValue={inputs.currentSavingsBalance}
-                onChange={update('currentSavingsBalance')}
-                prefix="$"
-                step={500}
-              />
-            </div>
-            <div>
-              <FieldLabel>Monthly savings contribution</FieldLabel>
-              <NumberField
-                defaultValue={inputs.currentMonthlySavings}
-                onChange={update('currentMonthlySavings')}
-                prefix="$"
-                step={50}
-              />
-              <FieldHelper>
-                What you&apos;re putting away now, during debt paydown
-              </FieldHelper>
-            </div>
-            <div>
-              <FieldLabel>Annual return on savings</FieldLabel>
-              <NumberField
-                defaultValue={inputs.annualReturnPct}
-                onChange={update('annualReturnPct')}
-                suffix="%"
-                step={0.1}
-              />
-              <FieldHelper>HYSA or investment return</FieldHelper>
-            </div>
-          </InputCard>
+          <CollapsibleSection
+            label="Right now"
+            summary={`${fmtMoneyShort(inputs.currentSavingsBalance)} saved · ${fmtMoneyShort(inputs.currentMonthlySavings)}/mo contribution`}
+            open={open1}
+            onToggle={() => setOpen1((v) => !v)}
+          >
+            <InputCard>
+              <div>
+                <FieldLabel>Current savings balance</FieldLabel>
+                <NumberField
+                  defaultValue={inputs.currentSavingsBalance}
+                  onChange={update('currentSavingsBalance')}
+                  prefix="$"
+                  step={500}
+                />
+              </div>
+              <div>
+                <FieldLabel>Monthly savings contribution</FieldLabel>
+                <NumberField
+                  defaultValue={inputs.currentMonthlySavings}
+                  onChange={update('currentMonthlySavings')}
+                  prefix="$"
+                  step={50}
+                />
+                <FieldHelper>
+                  What you&apos;re putting away now, during debt paydown
+                </FieldHelper>
+              </div>
+              <div>
+                <FieldLabel>Annual return on savings</FieldLabel>
+                <NumberField
+                  defaultValue={inputs.annualReturnPct}
+                  onChange={update('annualReturnPct')}
+                  suffix="%"
+                  step={0.1}
+                />
+                <FieldHelper>HYSA or investment return</FieldHelper>
+              </div>
+            </InputCard>
+          </CollapsibleSection>
 
           {/* Section 2 — Debt paydown */}
-          <SectionLabel>Debt paydown</SectionLabel>
-          <p style={{ fontSize: 12, color: INK_4, marginTop: -8, marginBottom: 12 }}>
-            From your debt paydown model, or estimate below
-          </p>
-          <InputCard>
-            <div>
-              <FieldLabel>Months until debt-free</FieldLabel>
-              <NumberField
-                defaultValue={inputs.monthsUntilDebtFree}
-                onChange={update('monthsUntilDebtFree')}
-                step={1}
-              />
-            </div>
-            <div>
-              <FieldLabel>Monthly cash flow unlocked</FieldLabel>
-              <NumberField
-                defaultValue={inputs.monthlyContributionAfterDebt}
-                onChange={update('monthlyContributionAfterDebt')}
-                prefix="$"
-                step={50}
-              />
-              <FieldHelper>
-                Total payments freed when all debts clear
-              </FieldHelper>
-            </div>
-          </InputCard>
+          <CollapsibleSection
+            label="Debt paydown"
+            summary={`${inputs.monthsUntilDebtFree} months · ${fmtMoneyShort(inputs.monthlyContributionAfterDebt)}/mo unlocked`}
+            open={open2}
+            onToggle={() => setOpen2((v) => !v)}
+          >
+            <p style={{ fontSize: 12, color: INK_4, marginTop: -8, marginBottom: 12 }}>
+              From your debt paydown model, or estimate below
+            </p>
+            <InputCard>
+              <div>
+                <FieldLabel>Months until debt-free</FieldLabel>
+                <NumberField
+                  defaultValue={inputs.monthsUntilDebtFree}
+                  onChange={update('monthsUntilDebtFree')}
+                  step={1}
+                />
+              </div>
+              <div>
+                <FieldLabel>Monthly cash flow unlocked</FieldLabel>
+                <NumberField
+                  defaultValue={inputs.monthlyContributionAfterDebt}
+                  onChange={update('monthlyContributionAfterDebt')}
+                  prefix="$"
+                  step={50}
+                />
+                <FieldHelper>
+                  Total payments freed when all debts clear
+                </FieldHelper>
+              </div>
+            </InputCard>
+          </CollapsibleSection>
 
           {/* Section 3 — Current home */}
-          <SectionLabel>Your current home</SectionLabel>
-          <InputCard>
-            <div>
-              <FieldLabel>Estimated sale price</FieldLabel>
-              <NumberField
-                defaultValue={inputs.currentHomeValue}
-                onChange={update('currentHomeValue')}
-                prefix="$"
-                step={5000}
+          <CollapsibleSection
+            label="Your current home"
+            summary={`${fmtMoneyShort(inputs.currentHomeValue)} estimated · ${fmtMoneyShort(result.netEquity)} equity`}
+            open={open3}
+            onToggle={() => setOpen3((v) => !v)}
+          >
+            <InputCard>
+              <div>
+                <FieldLabel>Estimated sale price</FieldLabel>
+                <NumberField
+                  defaultValue={inputs.currentHomeValue}
+                  onChange={update('currentHomeValue')}
+                  prefix="$"
+                  step={5000}
+                />
+              </div>
+              <div>
+                <FieldLabel>Remaining mortgage balance</FieldLabel>
+                <NumberField
+                  defaultValue={inputs.remainingMortgage}
+                  onChange={update('remainingMortgage')}
+                  prefix="$"
+                  step={5000}
+                />
+              </div>
+              <div>
+                <FieldLabel>Selling costs</FieldLabel>
+                <NumberField
+                  defaultValue={inputs.sellingCostPct}
+                  onChange={update('sellingCostPct')}
+                  suffix="%"
+                  step={0.5}
+                />
+                <FieldHelper>
+                  Agent fees + closing costs, typically 5–6%
+                </FieldHelper>
+              </div>
+              <CalculatedBox
+                label="Estimated net equity"
+                value={fmtMoney(result.netEquity)}
               />
-            </div>
-            <div>
-              <FieldLabel>Remaining mortgage balance</FieldLabel>
-              <NumberField
-                defaultValue={inputs.remainingMortgage}
-                onChange={update('remainingMortgage')}
-                prefix="$"
-                step={5000}
-              />
-            </div>
-            <div>
-              <FieldLabel>Selling costs</FieldLabel>
-              <NumberField
-                defaultValue={inputs.sellingCostPct}
-                onChange={update('sellingCostPct')}
-                suffix="%"
-                step={0.5}
-              />
-              <FieldHelper>
-                Agent fees + closing costs, typically 5–6%
-              </FieldHelper>
-            </div>
-            <CalculatedBox
-              label="Estimated net equity"
-              value={fmtMoney(result.netEquity)}
-            />
-          </InputCard>
+            </InputCard>
+          </CollapsibleSection>
 
           {/* Section 4 — Target home */}
-          <SectionLabel>Target home</SectionLabel>
-          <InputCard>
-            <div>
-              <FieldLabel>Target home price</FieldLabel>
-              <NumberField
-                defaultValue={inputs.targetHomePrice}
-                onChange={update('targetHomePrice')}
-                prefix="$"
-                step={5000}
+          <CollapsibleSection
+            label="Target home"
+            summary={`${fmtMoneyShort(inputs.targetHomePrice)} · ${inputs.downPaymentPct}% down · ${fmtMoneyShort(result.totalCashNeeded)} needed`}
+            open={open4}
+            onToggle={() => setOpen4((v) => !v)}
+          >
+            <InputCard>
+              <div>
+                <FieldLabel>Target home price</FieldLabel>
+                <NumberField
+                  defaultValue={inputs.targetHomePrice}
+                  onChange={update('targetHomePrice')}
+                  prefix="$"
+                  step={5000}
+                />
+              </div>
+              <div>
+                <FieldLabel>Down payment</FieldLabel>
+                <NumberField
+                  defaultValue={inputs.downPaymentPct}
+                  onChange={update('downPaymentPct')}
+                  suffix="%"
+                  step={1}
+                />
+              </div>
+              <div>
+                <FieldLabel>Closing costs</FieldLabel>
+                <NumberField
+                  defaultValue={inputs.closingCostPct}
+                  onChange={update('closingCostPct')}
+                  suffix="%"
+                  step={0.5}
+                />
+              </div>
+              <div>
+                <FieldLabel>Annual home price appreciation</FieldLabel>
+                <NumberField
+                  defaultValue={inputs.annualAppreciationPct}
+                  onChange={update('annualAppreciationPct')}
+                  suffix="%"
+                  step={0.5}
+                  min={0}
+                />
+                <FieldHelper>Historical So-Cal average ~4–6% annually</FieldHelper>
+              </div>
+              <CalculatedBox
+                label="Total cash needed"
+                value={fmtMoney(result.totalCashNeeded)}
               />
-            </div>
-            <div>
-              <FieldLabel>Down payment</FieldLabel>
-              <NumberField
-                defaultValue={inputs.downPaymentPct}
-                onChange={update('downPaymentPct')}
-                suffix="%"
-                step={1}
-              />
-            </div>
-            <div>
-              <FieldLabel>Closing costs</FieldLabel>
-              <NumberField
-                defaultValue={inputs.closingCostPct}
-                onChange={update('closingCostPct')}
-                suffix="%"
-                step={0.5}
-              />
-            </div>
-            <div>
-              <FieldLabel>Annual home price appreciation</FieldLabel>
-              <NumberField
-                defaultValue={inputs.annualAppreciationPct}
-                onChange={update('annualAppreciationPct')}
-                suffix="%"
-                step={0.5}
-                min={0}
-              />
-              <FieldHelper>Historical So-Cal average ~4–6% annually</FieldHelper>
-            </div>
-            <CalculatedBox
-              label="Total cash needed"
-              value={fmtMoney(result.totalCashNeeded)}
-            />
-          </InputCard>
+            </InputCard>
+          </CollapsibleSection>
         </div>
 
         {/* Section 5 — Result */}
@@ -1052,8 +1154,16 @@ export default function HomeModelSimulator() {
 
         {/* Affordability check */}
         <div style={{ marginTop: 32 }}>
-          <SectionLabel>Affordability check</SectionLabel>
-
+          <CollapsibleSection
+            label="Affordability check"
+            summary={
+              affordability
+                ? `${fmtUSD(affordability.monthlyPI)}/mo P&I${affordability.housingRatio != null ? ` · ${fmtPct1(affordability.housingRatio)} housing ratio` : ''}`
+                : '—'
+            }
+            open={open5}
+            onToggle={() => setOpen5((v) => !v)}
+          >
           <div key={hydrated ? 'h-aff' : 'd-aff'}>
             <InputCard>
               <div>
@@ -1134,6 +1244,7 @@ export default function HomeModelSimulator() {
               </p>
             </div>
           )}
+          </CollapsibleSection>
         </div>
       </main>
       <Footer />
